@@ -1,0 +1,1749 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H5P Wizard</title>
+    <script src="https://WS-Lab.de/wp-content/uploads/2026/Libs/jszip.min.js"></script>
+<script src="https://WS-Lab.de/wp-content/uploads/2026/Libs/FileSaver.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #173a79; --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --hover-bg: #eff6ff;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1rem; }
+
+        .progress-container { position: sticky; top: 0; background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem; z-index: 50; }
+        .progress-steps { display: flex; justify-content: space-between; align-items: center; position: relative; max-width: 900px; margin: 0 auto; }
+        .progress-line { position: absolute; top: 20px; left: 0; right: 0; height: 4px; background: #e2e8f0; z-index: -1; }
+        .progress-line-fill { height: 100%; background: var(--success); transition: width 0.3s ease; width: 0%; }
+        .progress-step { display: flex; flex-direction: column; align-items: center; gap: 8px; background: white; padding: 0 10px; z-index: 1; cursor: pointer; }
+        .progress-step.locked { cursor: not-allowed; opacity: 0.45; }
+        .progress-step:not(.locked):hover .step-circle { box-shadow: 0 0 0 3px rgba(23, 58, 121, 0.2); }
+        .step-circle { width: 40px; height: 40px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.3s ease; }
+        .step-circle.active { background: var(--primary); color: white; transform: scale(1.1); }
+        .step-circle.complete { background: var(--success); color: white; }
+        .step-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-align: center; }
+        .step-label.active { color: var(--primary); }
+
+        h1 { text-align: center; color: var(--primary); margin: 2rem 0; font-weight: 800; }
+
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .main-grid { max-width: 1200px; margin: 0 auto; }
+        .card { background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border); }
+        .card-title { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--primary); font-size: 1.4rem; }
+        .step-badge { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; font-weight: bold; font-size: 1rem; }
+
+        label { display: flex; align-items: center; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; margin-top: 15px; }
+        .field-desc { font-size: 0.85rem; color: #64748b; margin-bottom: 8px; line-height: 1.4; background: #f8fafc; padding: 8px; border-radius: 6px; border-left: 3px solid #cbd5e1; }
+        select, input, textarea { width: 100%; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; transition: all 0.2s; }
+        select:focus, input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(23, 58, 121, 0.1); }
+        select.valid { border-color: var(--success); }
+        select.invalid { border-color: var(--danger); }
+
+        .grid-3, .grid-2 { display: grid; gap: 1.5rem; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .nav-buttons { display: flex; gap: 1rem; margin-top: 25px; }
+
+        button { width: 100%; padding: 16px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1.05rem; color: white; background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%); transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 10px; }
+        button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+        button:disabled { background: #9ca3af; cursor: not-allowed; opacity: 0.6; }
+        button.btn-secondary { background: linear-gradient(135deg, #64748b 0%, #475569 100%); }
+        button.btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        button.btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        button.btn-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        button.btn-sm { padding: 8px 14px; font-size: 0.85rem; width: auto; }
+
+        .type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; }
+        .type-grid input { display: none; }
+        .type-grid label { border: 2px solid #cbd5e1; border-radius: 12px; background: #fff; color: #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px 8px; min-height: 100px; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; text-align: center; line-height: 1.3; }
+        .type-grid input:checked + label { background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%); border-color: var(--primary); color: white; }
+        .type-grid i { font-size: 2rem; margin-bottom: 8px; }
+        .type-grid label .tpl-badge { display: none; position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: var(--success); color: white; font-size: 10px; align-items: center; justify-content: center; }
+        .type-grid label { position: relative; }
+        .type-grid label.has-template .tpl-badge { display: flex; }
+
+        .settings-box { background: #f8fafc; padding: 20px; border-radius: 10px; border: 2px solid var(--border); margin-top: 15px; }
+        .checkbox-option { display: flex; align-items: center; gap: 10px; }
+        .checkbox-option input { width: auto; }
+        .video-box { border: 2px dashed #3b82f6; background: #eff6ff; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; }
+        .page-block-item { display:flex; align-items:center; gap:8px; padding:5px 8px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; user-select:none; transition:background 0.15s, border-color 0.15s; }
+        .page-block-item.drag-over { border-color:#3b82f6; background:#dbeafe; }
+        .page-block-item.dragging { opacity:0.35; }
+        .page-block-item .drag-handle { cursor:grab; color:#94a3b8; font-size:1.1rem; padding:0 2px; }
+        .page-block-item input[type="checkbox"] { width:auto; margin:0; }
+        .page-block-item label { font-weight:normal; margin:0; font-size:0.9rem; cursor:pointer; flex:1; }
+        #page-structure-preview { display:flex; gap:5px; flex-wrap:wrap; padding:6px 10px; background:#f8fafc; border-radius:6px; border:1px solid #e2e8f0; min-height:34px; align-items:center; margin-top:8px; }
+        .page-preview-chip { padding:2px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; color:white; letter-spacing:0.02em; }
+
+        .preview-box { background: #0f172a; color: #f8fafc; padding: 20px; border-radius: 12px; font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.5; white-space: pre-wrap; min-height: 150px; max-height: 400px; overflow-y: auto; border: 1px solid #334155; margin-top: 10px; }
+        .status { margin-top: 15px; padding: 14px; border-radius: 10px; text-align: center; font-weight: 600; display: none; animation: fadeIn 0.3s; }
+        .success { background: #dcfce7; color: #15803d; border: 2px solid #86efac; }
+        .error { background: #fee2e2; color: #b91c1c; border: 2px solid #fca5a5; }
+        .warning { background: #fef9c3; color: #a16207; border: 2px solid #fde047; }
+        .info { background: #dbeafe; color: #1e40af; border: 2px solid #93c5fd; }
+
+        .help-trigger { position: fixed; right: 2rem; top: 1.5rem; width: 50px !important; height: 50px; background: var(--primary); color: white; border: none; padding: 0; border-radius: 50%; font-size: 1.5rem; cursor: pointer; z-index: 100; box-shadow: 0 4px 12px rgba(23, 58, 121, 0.3); }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); overflow-y: auto; }
+        .modal-content { background-color: white; margin: 5% auto; padding: 40px; border-radius: 20px; max-width: 800px; position: relative; }
+        .close { position: absolute; right: 25px; top: 20px; font-size: 28px; font-weight: bold; color: #64748b; cursor: pointer; }
+
+        .workflow-step { display: flex; align-items: flex-start; margin-bottom: 25px; padding: 20px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--border); }
+        .step-num { background: var(--primary); color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 20px; flex-shrink: 0; margin-top: 2px; }
+        .step-text h4 { margin: 0 0 8px 0; color: var(--primary); font-size: 1.1rem; }
+        .step-text p { margin: 0; font-size: 0.95rem; color: #475569; line-height: 1.5; }
+
+        /* ===== TEMPLATE MANAGER STYLES ===== */
+        .tpl-manager { margin-bottom: 24px; }
+        .tpl-manager-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 16px 20px; background: linear-gradient(135deg, #1e3a5f 0%, #173a79 100%); border-radius: 12px; color: white; }
+        .tpl-manager-header h3 { margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .tpl-manager-body { background: #f8fafc; border: 2px solid var(--border); border-radius: 12px; overflow: hidden; }
+
+        /* ===== WORDPRESS CONFIG ===== */
+        .wp-config { background: #f0f7ff; border: 2px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .wp-config-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .wp-config-header h3 { margin: 0; color: #1e40af; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        .wp-badge { background: #2563eb; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
+
+        .wp-url-grid { display: grid; gap: 0; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: white; }
+        .wp-url-row { display: grid; grid-template-columns: 200px 1fr auto; align-items: center; gap: 0; border-bottom: 1px solid #e2e8f0; transition: background 0.15s; }
+        .wp-url-row:last-child { border-bottom: none; }
+        .wp-url-row:hover { background: #f8fafc; }
+        .wp-url-row.has-url { background: #f0fdf4; }
+        .wp-url-row.has-url:hover { background: #dcfce7; }
+        .wp-url-label { padding: 10px 14px; font-size: 0.85rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; border-right: 1px solid #e2e8f0; white-space: nowrap; }
+        .wp-url-label i { color: var(--primary); width: 16px; text-align: center; }
+        .wp-url-input { border: none !important; border-radius: 0 !important; padding: 10px 12px !important; font-size: 0.82rem !important; background: transparent !important; box-shadow: none !important; }
+        .wp-url-input:focus { background: #eff6ff !important; box-shadow: inset 0 0 0 2px var(--primary) !important; border-radius: 0 !important; }
+        .wp-url-actions { padding: 6px 10px; display: flex; gap: 4px; }
+        .wp-url-btn { padding: 5px 8px !important; font-size: 0.75rem !important; width: auto !important; border-radius: 6px !important; }
+        .wp-url-status { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
+        .wp-url-status.ok { background: var(--success); }
+        .wp-url-status.err { background: var(--danger); }
+        .wp-url-status.loading { background: var(--warning); animation: pulse 1s infinite; }
+
+        .wp-bulk-area { margin-top: 14px; border-top: 2px solid #bfdbfe; padding-top: 14px; }
+        .wp-bulk-textarea { font-family: monospace !important; font-size: 0.78rem !important; height: 100px !important; resize: vertical !important; }
+        .wp-bulk-hint { font-size: 0.78rem; color: #64748b; margin-top: 4px; background: none; border: none; padding: 0; }
+
+        .wp-config-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+        .upload-zone { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 20px; text-align: center; transition: all 0.2s; cursor: pointer; }
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--primary); background: var(--hover-bg); }
+        .upload-zone i { font-size: 2rem; color: #94a3b8; display: block; margin-bottom: 8px; }
+        .upload-zone span { font-size: 0.9rem; color: #64748b; }
+        .upload-zone input[type="file"] { display: none; }
+
+        footer { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); color: #64748b; text-align: center; }
+        a.link { color: var(--primary); text-decoration: none; font-weight: bold; }
+        a.link:hover { text-decoration: underline; }
+
+        /* ===== CUSTOM SELECT (Fach) ===== */
+        .custom-select-wrap { position: relative; width: 100%; }
+        .custom-select-trigger { width: 100%; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-family: inherit; background: white; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: var(--text); transition: all 0.2s; user-select: none; }
+        .custom-select-trigger::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 0.75rem; color: #64748b; transition: transform 0.2s; }
+        .custom-select-wrap.open .custom-select-trigger { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(23, 58, 121, 0.1); }
+        .custom-select-wrap.open .custom-select-trigger::after { transform: rotate(180deg); }
+        .custom-select-wrap.valid .custom-select-trigger { border-color: var(--success); }
+        .custom-select-wrap.invalid .custom-select-trigger { border-color: var(--danger); }
+        .custom-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 2px solid var(--primary); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 200; max-height: 260px; overflow-y: auto; display: none; }
+        .custom-select-wrap.open .custom-select-dropdown { display: block; }
+        .custom-select-option { padding: 5px 14px; font-size: 0.92rem; cursor: pointer; color: var(--text); transition: background 0.1s; }
+        .custom-select-option:hover { background: var(--hover-bg); }
+        .custom-select-option.selected { background: #eff6ff; color: var(--primary); font-weight: 600; }
+        .custom-select-option[data-value=""] { color: #94a3b8; }
+
+        #t-essay, label[for="t-essay"] { display: none; }
+
+        .feedback-options-disabled { opacity: 0.45; pointer-events: none; }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .step-label { display: none; }
+            .tpl-grid { display: grid; grid-template-columns: 1fr; }
+            .wp-url-row { grid-template-columns: 1fr; }
+            .wp-url-label { border-right: none; border-bottom: 1px solid #e2e8f0; }
+        }
+    </style>
+</head>
+<body>
+<button class="help-trigger" id="helpBtn" title="Hilfe &amp; Anleitung"><i class="fa-solid fa-circle-question"></i></button>
+
+<div class="progress-container">
+    <div class="progress-steps">
+        <div class="progress-line"><div class="progress-line-fill" id="progressFill"></div></div>
+        <div class="progress-step" data-step="1"><div class="step-circle" id="circle1">1</div><div class="step-label">Grundlagen</div></div>
+        <div class="progress-step" data-step="2"><div class="step-circle" id="circle2">2</div><div class="step-label">Inhaltstyp</div></div>
+        <div class="progress-step" data-step="3"><div class="step-circle" id="circle3">3</div><div class="step-label">Details</div></div>
+        <div class="progress-step" data-step="4"><div class="step-circle" id="circle4">4</div><div class="step-label">Prompt</div></div>
+        <div class="progress-step" data-step="5"><div class="step-circle" id="circle5">5</div><div class="step-label">Export</div></div>
+    </div>
+</div>
+
+<h1><i class="fa-solid fa-wand-magic-sparkles"></i> H5P Wizard</h1>
+
+<div class="main-grid">
+    <!-- PAGE 1 -->
+    <div id="page-1" class="page">
+        <div class="card">
+            <div class="card-header"><h2 class="card-title"><span class="step-badge">1</span>Grundlagen festlegen</h2></div>
+            <div class="grid-3">
+                <div>
+                    <label for="schulart">Schulart</label>
+                    <select id="schulart">
+                        <option value="">Bitte w&#228;hlen...</option>
+                        <option value="Grundschule">Grundschule</option>
+                        <option value="Werkreal-/Hauptschule">Werkreal-/Hauptschule</option>
+                        <option value="Realschule">Realschule</option>
+                        <option value="Gemeinschaftsschule">Gemeinschaftsschule</option>
+                        <option value="Gymnasium">Gymnasium</option>
+                        <option value="Berufliche Schule">Berufliche Schule</option>
+                        <option value="SBBZ">SBBZ</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fach-display">Fach</label>
+                    <input type="hidden" id="fach" value="">
+                    <div class="custom-select-wrap" id="fach-wrap">
+                        <div class="custom-select-trigger" id="fach-display" tabindex="0">Bitte w&#228;hlen...</div>
+                        <div class="custom-select-dropdown" id="fach-dropdown">
+                            <div class="custom-select-option" data-value="">Bitte w&#228;hlen...</div>
+                            <div class="custom-select-option" data-value="Deutsch">Deutsch</div>
+                            <div class="custom-select-option" data-value="Deutsch als Zweitsprache">Deutsch als Zweitsprache (DaZ)</div>
+                            <div class="custom-select-option" data-value="Mathematik">Mathematik</div>
+                            <div class="custom-select-option" data-value="Englisch">Englisch</div>
+                            <div class="custom-select-option" data-value="Franz&#246;sisch">Franz&#246;sisch</div>
+                            <div class="custom-select-option" data-value="Latein">Latein</div>
+                            <div class="custom-select-option" data-value="Spanisch">Spanisch</div>
+                            <div class="custom-select-option" data-value="Sachunterricht">Sachunterricht</div>
+                            <div class="custom-select-option" data-value="BNT">BNT (Bio, Naturph&#228;nomene, Technik)</div>
+                            <div class="custom-select-option" data-value="AES">AES (Alltagskultur, Ern&#228;hrung, Soziales)</div>
+                            <div class="custom-select-option" data-value="Technik">Technik</div>
+                            <div class="custom-select-option" data-value="Geschichte">Geschichte</div>
+                            <div class="custom-select-option" data-value="Geographie">Geographie</div>
+                            <div class="custom-select-option" data-value="Gemeinschaftskunde">Gemeinschaftskunde</div>
+                            <div class="custom-select-option" data-value="Wirtschaft">Wirtschaft / WBS</div>
+                            <div class="custom-select-option" data-value="Physik">Physik</div>
+                            <div class="custom-select-option" data-value="Chemie">Chemie</div>
+                            <div class="custom-select-option" data-value="Biologie">Biologie</div>
+                            <div class="custom-select-option" data-value="NWT">NWT (Naturwissenschaft und Technik)</div>
+                            <div class="custom-select-option" data-value="Informatik">Informatik</div>
+                            <div class="custom-select-option" data-value="IMP">IMP (Mathe-Info-Physik)</div>
+                            <div class="custom-select-option" data-value="Musik">Musik</div>
+                            <div class="custom-select-option" data-value="Bildende Kunst">Bildende Kunst</div>
+                            <div class="custom-select-option" data-value="Sport">Sport</div>
+                            <div class="custom-select-option" data-value="Religion">Religion</div>
+                            <div class="custom-select-option" data-value="Ethik">Ethik</div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="klasse">Klassenstufe</label>
+                    <select id="klasse">
+                        <option value="">Bitte w&#228;hlen...</option>
+                        <option value="1">Klasse 1</option><option value="2">Klasse 2</option><option value="3">Klasse 3</option>
+                        <option value="4">Klasse 4</option><option value="5">Klasse 5</option><option value="6">Klasse 6</option>
+                        <option value="7">Klasse 7</option><option value="8">Klasse 8</option><option value="9">Klasse 9</option>
+                        <option value="10">Klasse 10</option><option value="11">Klasse 11</option><option value="12">Klasse 12</option>
+                        <option value="13">Klasse 13</option>
+                    </select>
+                </div>
+            </div>
+            <div class="nav-buttons"><button id="step1Next" disabled>Weiter <i class="fas fa-arrow-right"></i></button></div>
+        </div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div id="page-2" class="page">
+        <div class="card">
+            <div class="card-header"><h2 class="card-title"><span class="step-badge">2</span>Inhaltstyp w&#228;hlen</h2></div>
+            <div class="type-grid" id="typeGrid">
+                <input type="radio" name="type" id="t-blanks" value="Fill in the Blanks" checked><label for="t-blanks"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-pen-to-square"></i>Fill in<br>the Blanks</label>
+                <input type="radio" name="type" id="t-complex-blanks" value="Complex Fill in the Blanks"><label for="t-complex-blanks"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-pen-nib"></i>Complex Fill<br>in the Blanks</label>
+                <input type="radio" name="type" id="t-drag" value="Drag the Words"><label for="t-drag"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-hand-pointer"></i>Drag<br>the Words</label>
+                <input type="radio" name="type" id="t-mark" value="Mark the Words"><label for="t-mark"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-highlighter"></i>Mark<br>the Words</label>
+                <input type="radio" name="type" id="t-mc" value="Multiple Choice"><label for="t-mc"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-square-check"></i>Multiple<br>Choice</label>
+                <input type="radio" name="type" id="t-qs" value="Question Set"><label for="t-qs"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-layer-group"></i>Question Set<br>(Quiz)</label>
+                <input type="radio" name="type" id="t-scs" value="Single Choice Set"><label for="t-scs"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-circle-dot"></i>Single Choice<br>Set</label>
+                <input type="radio" name="type" id="t-tf" value="True False"><label for="t-tf"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-scale-balanced"></i>True/False<br>Question</label>
+                <input type="radio" name="type" id="t-cards" value="Dialog Cards"><label for="t-cards"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-clone"></i>Dialog<br>Cards</label>
+                <input type="radio" name="type" id="t-flash" value="Flashcards"><label for="t-flash"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-id-card-clip"></i>Flashcards</label>
+                <input type="radio" name="type" id="t-essay" value="Essay"><label for="t-essay"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-file-lines"></i>Essay</label>
+                <input type="radio" name="type" id="t-sort" value="Sort the Paragraphs"><label for="t-sort"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-arrow-down-short-wide"></i>Sort the<br>Paragraphs</label>
+                <input type="radio" name="type" id="t-guess" value="Guess the Answer"><label for="t-guess"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-eye-slash"></i>Guess<br>the Answer</label>
+                <input type="radio" name="type" id="t-sum" value="Summary"><label for="t-sum"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-list-check"></i>Summary</label>
+                <input type="radio" name="type" id="t-video" value="Interactive Video"><label for="t-video"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-video"></i>Interactive<br>Video</label>
+                <input type="radio" name="type" id="t-page" value="Page"><label for="t-page"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-file-lines"></i>Page</label>
+                <input type="radio" name="type" id="t-accordion" value="Accordion"><label for="t-accordion"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-bars-staggered"></i>Accordion</label>
+                <input type="radio" name="type" id="t-crossword" value="Crossword"><label for="t-crossword"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-table-cells"></i>Crossword</label>
+                <input type="radio" name="type" id="t-timeline" value="Timeline"><label for="t-timeline"><span class="tpl-badge"><i class="fas fa-check" style="font-size:8px;"></i></span><i class="fa-solid fa-timeline"></i>Timeline</label>
+            </div>
+            <div class="nav-buttons">
+                <button class="btn-secondary" onclick="navigateTo(1)"><i class="fas fa-arrow-left"></i> Zur&#252;ck</button>
+                <button onclick="navigateTo(3)">Weiter <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 3 -->
+    <div id="page-3" class="page">
+        <div class="card">
+            <div class="card-header"><h2 class="card-title"><span class="step-badge">3</span>Didaktische Einstellungen</h2></div>
+            <div id="video-opts" class="video-box">
+                <label style="margin-top:0; color:#1e40af;"><i class="fa-brands fa-youtube"></i> YouTube Link (Optional)</label>
+                <div class="field-desc">Wenn du hier den Link einf&#252;gst, wird das Video direkt in die H5P-Datei eingebettet.</div>
+                <input type="text" id="youtube-url" placeholder="...">
+            </div>
+            <div class="settings-box">
+                <div class="grid-2">
+                    <div>
+                        <div id="opts-text" style="display:none;">
+                            <label>Umfang (Optional)</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="number" id="wc" title="Wortanzahl" placeholder="W&#246;rter (Auto)">
+                                <input type="number" id="gc" title="Anzahl L&#252;cken" placeholder="L&#252;cken (Auto)">
+                            </div>
+                            <div class="checkbox-option" style="margin-top:10px;"><input type="checkbox" id="add-infinitive"><label for="add-infinitive">Infinitiv/Hinweis anzeigen?</label></div>
+                        </div>
+                        <div id="opts-complex-blanks" style="display:none;">
+                            <label for="complex-blanks-mode">Eingabe-Modus</label>
+                            <select id="complex-blanks-mode">
+                                <option value="typing">Antwort eintippen</option>
+                                <option value="selection">Aus Liste ausw&#228;hlen</option>
+                            </select>
+                            <div id="div-complex-blanks-alternatives" style="display:none;">
+                                <label for="complex-blanks-alternatives">Art der Auswahloptionen</label>
+                                <select id="complex-blanks-alternatives">
+                                    <option value="alternatives">F&#252;r die jeweilige L&#252;cke eingegebene falsche Antworten</option>
+                                    <option value="answers">Richtige Antworten von allen anderen L&#252;cken</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="opts-mc" style="display:none;">
+                            <label>Optionen</label>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="number" id="mc-opts" value="4" max="6"><div id="opts-mc-multi-check" class="checkbox-option"><input type="checkbox" id="mc-multi"><label for="mc-multi">Mehrfachantworten</label></div>
+                            </div>
+                            <label>Anzahl Fragen</label>
+                            <input type="number" id="question-count" value="5" min="1" max="30">
+                            <div id="qs-mixed-types" style="display:none; margin-top:15px; border-top:1px dashed #ccc; padding-top:10px;">
+                                <label style="color:var(--primary);">Erlaubte Fragetypen im Quiz:</label>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                                    <div class="checkbox-option"><input type="checkbox" id="qs-allow-mc" checked><label for="qs-allow-mc">Multiple Choice</label></div>
+                                    <div class="checkbox-option"><input type="checkbox" id="qs-allow-tf"><label for="qs-allow-tf">True / False</label></div>
+                                    <div class="checkbox-option"><input type="checkbox" id="qs-allow-blanks"><label for="qs-allow-blanks">Fill in the Blanks</label></div>
+                                    <div class="checkbox-option"><input type="checkbox" id="qs-allow-drag"><label for="qs-allow-drag">Drag the Words</label></div>
+                                    <div class="checkbox-option"><input type="checkbox" id="qs-allow-mark"><label for="qs-allow-mark">Mark the Words</label></div>
+                                </div>
+                                <div class="field-desc" style="margin-top:8px;">&#9888;&#65039; W&#228;hle nur Typen, die im Template enthalten sind!</div>
+                            </div>
+                        </div>
+                        <div id="opts-cards" style="display:none;">
+                            <label>Karten-Modus</label>
+                            <select id="card-mode"></select>
+                            <label>Anzahl Paare</label><input type="number" id="card-count" value="10">
+                        </div>
+                    </div>
+                    <div>
+                        <div id="opts-crossword" style="display:none;">
+                            <label>Anzahl W&#246;rter</label><input type="number" id="crossword-count" value="8" min="3" max="20">
+                            <div class="field-desc" style="margin-top:6px;">Mindestens 3 W&#246;rter n&#246;tig. H5P berechnet das Gitter automatisch.</div>
+                        </div>
+                        <div id="opts-timeline" style="display:none;">
+                            <label>Anzahl Ereignisse</label><input type="number" id="timeline-count" value="8" min="3" max="20">
+                            <div class="checkbox-option" style="margin-top:10px;"><input type="checkbox" id="timeline-eras"><label for="timeline-eras">Epochen/Phasen generieren</label></div>
+                        </div>
+                        <div id="opts-accordion" style="display:none;">
+                            <label>Anzahl Abschnitte</label><input type="number" id="accordion-count" value="5" min="2" max="15">
+                            <div class="field-desc" style="margin-top:6px;">Jeder Abschnitt hat einen Titel und einen Erkl&#228;rungstext.</div>
+                        </div>
+                        <div id="opts-page" style="display:none;">
+                            <label>Bausteine der Seite</label>
+                            <div class="field-desc">Ziehe die Bl&ouml;cke in die gew&uuml;nschte Reihenfolge. Aktiviere sie per Checkbox.</div>
+                            <div id="page-block-list" style="display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+                                <div class="page-block-item" data-block="intro" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-intro" checked>
+                                    <label for="page-has-intro">Einleitungstext</label>
+                                </div>
+                                <div class="page-block-item" data-block="reading" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-reading">
+                                    <label for="page-has-reading">Lesetext (Leseverstehen / Informationstext)</label>
+                                </div>
+                                <div class="page-block-item" data-block="mc" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-mc" checked>
+                                    <label for="page-has-mc">Multiple Choice</label>
+                                </div>
+                                <div class="page-block-item" data-block="tf" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-tf">
+                                    <label for="page-has-tf">True/False</label>
+                                </div>
+                                <div class="page-block-item" data-block="blanks" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-blanks">
+                                    <label for="page-has-blanks">L&uuml;ckentext (zusammenh&auml;ngend)</label>
+                                </div>
+                                <div class="page-block-item" data-block="summary" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-summary">
+                                    <label for="page-has-summary">Summary</label>
+                                </div>
+                            </div>
+                            <div id="page-structure-preview"></div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-top:10px; align-items:start;">
+                                <div id="page-intro-opts" style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Einleitungstext:</span>
+                                    <select id="page-intro-length" style="flex:1; margin:0; padding:4px 6px; font-size:0.85rem;">
+                                        <option value="short">Kurz (2&#8211;3 S&#228;tze)</option>
+                                        <option value="medium" selected>Mittel (1 Absatz)</option>
+                                        <option value="long">Ausf&#252;hrlich (2&#8211;3 Abs&#228;tze)</option>
+                                    </select>
+                                </div>
+                                <div id="page-reading-opts" style="display:none; align-items:center; gap:8px;">
+                                    <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Lesetext:</span>
+                                    <select id="page-reading-length" style="flex:1; margin:0; padding:4px 6px; font-size:0.85rem;">
+                                        <option value="medium">Mittel (100&#8211;150 W.)</option>
+                                        <option value="long" selected>Lang (200&#8211;300 W.)</option>
+                                        <option value="verylong">Sehr lang (350&#8211;500 W.)</option>
+                                    </select>
+                                </div>
+                                <div id="page-mc-opts" style="display:flex; flex-direction:column; gap:4px;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">MC-Fragen:</span>
+                                        <input type="number" id="page-mc-count" value="3" min="1" max="10" style="width:55px; margin:0;">
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Antworten/Frage:</span>
+                                        <input type="range" id="page-mc-answers" min="3" max="5" value="4" style="width:75px; margin:0; cursor:pointer;">
+                                        <span id="page-mc-answers-val" style="font-size:0.85rem; font-weight:600; min-width:12px;">4</span>
+                                    </div>
+                                </div>
+                                <div id="page-tf-opts" style="display:none; align-items:center; gap:8px;">
+                                    <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl T/F-Fragen:</span>
+                                    <input type="number" id="page-tf-count" value="2" min="1" max="8" style="width:55px; margin:0;">
+                                </div>
+                                <div id="page-blanks-opts" style="display:none; flex-direction:column; gap:4px;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl W&ouml;rter:</span>
+                                        <input type="number" id="page-blanks-words" value="80" min="30" max="200" style="width:65px; margin:0;">
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl L&uuml;cken:</span>
+                                        <input type="number" id="page-blanks-gaps" value="5" min="2" max="15" style="width:55px; margin:0;">
+                                    </div>
+                                </div>
+                                <div id="page-summary-opts" style="display:none; align-items:center; gap:8px;">
+                                    <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Summary-Gruppen:</span>
+                                    <input type="number" id="page-summary-count" value="3" min="1" max="8" style="width:55px; margin:0;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-top:1.5rem;">
+                    <div>
+                        <label>Anforderungsniveau</label>
+                        <select id="diff-level">
+                            <option value="standard">Standard (Klassendurchschnitt)</option>
+                            <option value="scaffolding">Grundlegend (Vereinfachte Sprache)</option>
+                            <option value="challenge">Erweitert (Komplexer Transfer)</option>
+                        </select>
+                    </div>
+                    <div id="div-cefr" style="display:none;">
+                        <label>Sprachniveau (CEFR)</label>
+                        <select id="cefr-level">
+                            <option value="">Nicht festlegen</option>
+                            <option value="A1">A1 &#8211; Anf&#228;nger</option>
+                            <option value="A2">A2 &#8211; Grundlegende Kenntnisse</option>
+                            <option value="B1">B1 &#8211; Fortgeschrittene Grundkenntnisse</option>
+                            <option value="B2">B2 &#8211; Selbstst&#228;ndige Sprachverwendung</option>
+                            <option value="C1">C1 &#8211; Fachkundige Sprachkenntnisse</option>
+                        </select>
+                    </div>
+                    <div id="bloom-wrap" style="display:none;">
+                        <label>Kognitive Vertiefung (Bloom)</label>
+                        <div id="bloom-hint" class="field-desc" style="display:none; background:#eff6ff; border-left-color:#3b82f6;"></div>
+                        <select id="bloom-level">
+                            <option value="">Nicht festlegen</option>
+                            <option value="remember">Erinnern &#8211; Fakten abrufen</option>
+                            <option value="understand">Verstehen &#8211; Bedeutung erfassen</option>
+                            <option value="apply">Anwenden &#8211; Wissen nutzen</option>
+                            <option value="analyze">Analysieren &#8211; Zusammenh&#228;nge erkennen</option>
+                        </select>
+                    </div>
+                    <div id="div-dist-strat" style="display:none;">
+                        <label>Art der Fehler (Distraktoren)</label>
+                        <select id="distractor-type">
+                            <option value="mixed">Gemischt (Standard)</option>
+                            <option value="semantic">Semantische N&#228;he</option>
+                            <option value="visual">Visuelle &#196;hnlichkeit / &quot;False Friends&quot;</option>
+                            <option value="misconception">Typische Sch&#252;lerfehler</option>
+                        </select>
+                    </div>
+                    <div id="opts-dist" style="display:none;">
+                        <label>Anzahl falscher W&#246;rter</label><input type="number" id="dist" value="2">
+                    </div>
+                </div>
+
+                <div style="margin-top:15px; border-top:1px dashed #ccc; padding-top:10px; display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+                    <div class="checkbox-option"><input type="checkbox" id="enable-feedback"><label for="enable-feedback">Feedback anzeigen</label></div>
+                    <div class="checkbox-option" id="enable-hints-wrap"><input type="checkbox" id="enable-hints"><label for="enable-hints">Hilfestellungen (Tipps)</label></div>
+                    <div id="feedback-style-wrap" style="flex-grow:1; min-width:200px;">
+                        <select id="feedback-style">
+                            <option value="corrective">Stil: Korrektiv (Sachlich)</option>
+                            <option value="scaffolding">Stil: Hinweisend</option>
+                            <option value="motivational">Stil: Motivierend</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-top:15px; border-top:1px dashed #ccc; padding-top:10px;">
+                    <div>
+                        <label>Lernziel-Typ</label>
+                        <select id="learning-goal-type">
+                            <option value="">Nicht festlegen</option>
+                            <option value="vocabulary">Vokabular / Fachbegriffe</option>
+                            <option value="grammar">Grammatik / Struktur</option>
+                            <option value="reading">Leseverstehen / Textarbeit</option>
+                            <option value="factual">Faktenwissen</option>
+                            <option value="transfer">Transferkompetenz</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Szenario</label>
+                        <select id="h5p-behaviour">
+                            <option value="practice">&#220;bungsmodus</option>
+                            <option value="test">Testmodus</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-buttons">
+                <button class="btn-secondary" onclick="navigateTo(2)"><i class="fas fa-arrow-left"></i> Zur&#252;ck</button>
+                <button onclick="navigateTo(4)">Weiter <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 4 -->
+    <div id="page-4" class="page">
+        <div class="card">
+            <div class="card-header"><h2 class="card-title"><span class="step-badge">4</span>Inhalt &amp; KI-Prompt</h2></div>
+            <label>Thema / Lernziel</label>
+            <input type="text" id="topic" placeholder="z.B. A visit to Cardiff Castle">
+            <label>Anweisung an KI</label>
+            <textarea id="task" rows="2" placeholder="z.B. Erstelle eine Zusammenfassung der Hauptattraktionen..."></textarea>
+            <label>Basistext / Transkript (Optional)</label>
+            <div class="field-desc" id="ref-desc">F&#252;ge hier einen Text als Grundlage ein. Bei Videos: Transkript mit Zeitstempeln!</div>
+            <textarea id="ref" rows="3" placeholder="Text hier einf&#252;gen..."></textarea>
+            <button id="genBtn" style="margin-top:25px;"><i class="fas fa-copy"></i> Prompt generieren &amp; kopieren</button><br>
+            <div id="genStatus" class="status success">Prompt in die Zwischenablage kopiert!</div>
+            
+<details id="next-steps-box" style="display:none; margin-top:25px; background:#eff6ff; border:2px solid #bfdbfe; border-radius:12px; overflow:hidden;">
+    <summary style="padding:14px 20px; font-weight:800; font-size:1.05rem; color:#1e40af; cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px;">
+        <i class="fa-solid fa-circle-info"></i> So geht es weiter
+        <i class="fa-solid fa-chevron-down" style="margin-left:auto; font-size:0.85rem; color:#93c5fd;"></i>
+    </summary>
+    <div style="padding:0 20px 20px 20px; display:flex; align-items:center; justify-content:center; gap:16px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; background:white; border:2px solid #bfdbfe; border-radius:10px; padding:14px 20px; min-width:140px; text-align:center;">
+            <i class="fa-solid fa-robot" style="font-size:1.8rem; color:#2563eb;"></i>
+            <span style="font-weight:700; font-size:0.85rem; color:#1e40af;">1. Prompt einfügen</span>
+            <span style="font-size:0.78rem; color:#64748b;">Öffne eine KI deiner Wahl und füge dort den kopierten Prompt ein.</span>
+        </div>
+        <i class="fa-solid fa-arrow-right" style="font-size:1.5rem; color:#93c5fd; flex-shrink:0;"></i>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; background:white; border:2px solid #bfdbfe; border-radius:10px; padding:14px 20px; min-width:140px; text-align:center;">
+            <i class="fa-solid fa-code" style="font-size:1.8rem; color:#2563eb;"></i>
+            <span style="font-weight:700; font-size:0.85rem; color:#1e40af;">2. JSON kopieren</span>
+            <span style="font-size:0.78rem; color:#64748b;">Kopiere anschließend den von der KI erzeugten JSON-Code in die Zwischenablage – dieser wird auf der nächsten Seite benötigt.</span>
+        </div>
+    </div>
+    <div style="padding:0 20px 14px 20px; text-align:right;">
+        <label style="font-size:0.78rem; color:#64748b; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-weight:400; margin:0;">
+            <input type="checkbox" id="hide-next-steps" style="width:auto;">
+            Diesen Hinweis nicht mehr anzeigen
+        </label>
+    </div>
+</details>
+<div class="nav-buttons">
+                <button class="btn-secondary" onclick="navigateTo(3)"><i class="fas fa-arrow-left"></i> Zur&#252;ck</button>
+                <button onclick="navigateTo(5)">Weiter zum Export <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 5: EXPORT -->
+    <div id="page-5" class="page">
+        <div class="card">
+            <div class="card-header"><h2 class="card-title"><span class="step-badge">5</span>H5P Export</h2></div>
+            <div id="mixed-quiz-warning" class="field-desc" style="background:#fee2e2; border-left:4px solid #ef4444; padding:15px; margin-bottom:20px; color:#b91c1c; display:none;">
+                <i class="fa-solid fa-triangle-exclamation"></i> <strong>ACHTUNG: Master-Template erforderlich!</strong><br>
+                Das verwendete Template MUSS ein Master-Container sein, der alle gew&#228;hlten Fragetypen enth&#228;lt.
+            </div>
+            <div class="grid-2">
+                <div>
+                    <label>Dateiname</label>
+                    <input type="text" id="fname" placeholder="mein-material">
+                </div>
+                <div id="tpl-source-info" style="display:flex; align-items:flex-end; padding-bottom:2px;">
+                    <div style="width:100%; padding:12px; background:#f0fdf4; border:2px solid #86efac; border-radius:8px; font-size:0.85rem; color:#15803d; font-weight:600;" id="activeTemplateInfo">
+                        <i class="fas fa-check-circle"></i> Template wird automatisch verwendet
+                    </div>
+                </div>
+            </div>
+            <label style="margin-top:20px;">KI-JSON einf&#252;gen</label>
+            <textarea id="jsonIn" rows="12" placeholder='{ ... }' style="font-family:monospace; font-size:12px;"></textarea>
+            <button id="packBtn" disabled style="margin-top:25px;"><i class="fas fa-file-archive"></i> H5P Datei erstellen</button>
+            <div id="packStatus" class="status"></div>
+            <div class="nav-buttons">
+                <button class="btn-secondary" onclick="navigateTo(4)"><i class="fas fa-arrow-left"></i> Zur&#252;ck</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HELP MODAL -->
+<div id="helpModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2 style="margin-bottom:8px; text-align:center;">&#127891; So erstellst du H5P-Aufgaben</h2>
+        <p style="text-align:center; color:#64748b; font-size:0.9rem; margin-bottom:28px;">In 5 Schritten vom leeren Bildschirm zur fertigen interaktiven Aufgabe.</p>
+        <div class="workflow-step"><div class="step-num">1</div><div class="step-text"><h4>Rahmenbedingungen &amp; Inhaltstyp w&#228;hlen</h4><p>W&#228;hle Schulart, Fach und Klassenstufe &#8211; der Wizard passt den Prompt automatisch an.</p></div></div>
+        <div class="workflow-step"><div class="step-num">2</div><div class="step-text"><h4>Didaktik einstellen &amp; Prompt generieren</h4><p>Stelle Anforderungsniveau, Feedback und Lernziel ein. Klicke auf <strong>&#8222;Prompt generieren &amp; kopieren&#8220;</strong>.</p></div></div>
+        <div class="workflow-step"><div class="step-num">3</div><div class="step-text"><h4>Prompt in die KI einf&#252;gen</h4><p>&#214;ffne zum Beispiel <a href="https://chat.openai.com" target="_blank" class="link">ChatGPT</a>,  <a href="https://gemini.google.com/app" target="_blank" class="link">Gemini</a>, <a href="https://claude.ai" target="_blank" class="link">Claude</a>, telli, fobizz oder ein anderes Modell deiner Wahl und f&#252;ge den kopierten Prompt ein.</p></div></div>
+        <div class="workflow-step"><div class="step-num">4</div><div class="step-text"><h4>JSON einf&#252;gen &amp; H5P-Datei erstellen</h4><p>Kopiere den JSON-Block aus der KI-Antwort und f&#252;ge ihn in das Export-Feld ein.</p></div></div>
+        <div class="workflow-step"><div class="step-num">5</div><div class="step-text"><h4>H5P-Datei hochladen &amp; einbetten</h4><p>Lade die Datei in Moodle, WordPress (H5P-Plugin) oder ILIAS hoch.</p></div></div>
+        <button onclick="document.getElementById('helpModal').style.display='none'" style="margin-top:10px;"><i class="fas fa-rocket"></i> Los geht's!</button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+const WP_BASE = "https://ws-lab.de/wp-content/uploads/h5p/exports/";
+const TEMPLATE_TYPES = [
+    { value: "Fill in the Blanks",    file: "fill-in-the-blanks.h5p",     icon: "fa-pen-to-square",         label: "Fill in the Blanks",    defaultUrl: WP_BASE + "fill-in-the-blanks-1.h5p" },
+    { value: "Complex Fill in the Blanks", file: "complex-fill-in-the-blanks.h5p", icon: "fa-pen-nib", label: "Complex Fill in the Blanks", defaultUrl: "https://ws-lab.de/wp-content/uploads/h5p/exports/advanced-blanks-example-1-503253.h5p" },
+    { value: "Drag the Words",        file: "drag-the-words.h5p",          icon: "fa-hand-pointer",          label: "Drag the Words",         defaultUrl: WP_BASE + "drag-the-words-1399.h5p" },
+    { value: "Mark the Words",        file: "mark-the-words.h5p",          icon: "fa-highlighter",           label: "Mark the Words",         defaultUrl: WP_BASE + "mark-the-words-2-1408.h5p" },
+    { value: "Multiple Choice",       file: "multiple-choice.h5p",         icon: "fa-square-check",          label: "Multiple Choice",        defaultUrl: WP_BASE + "multiple-choice-713.h5p" },
+    { value: "Question Set",          file: "question-set.h5p",            icon: "fa-layer-group",           label: "Question Set",           defaultUrl: WP_BASE + "question-set-616.h5p" },
+    { value: "Single Choice Set",     file: "single-choice-set.h5p",       icon: "fa-circle-dot",            label: "Single Choice Set",      defaultUrl: WP_BASE + "single-choice-set-1515.h5p" },
+    { value: "True False",            file: "true-false.h5p",              icon: "fa-scale-balanced",        label: "True/False",             defaultUrl: WP_BASE + "true-false-question-34806.h5p" },
+    { value: "Dialog Cards",          file: "dialog-cards.h5p",            icon: "fa-clone",                 label: "Dialog Cards",           defaultUrl: WP_BASE + "dialog-cards-620.h5p" },
+    { value: "Flashcards",            file: "flashcards.h5p",              icon: "fa-id-card-clip",          label: "Flashcards",             defaultUrl: WP_BASE + "flashcards-51-111820.h5p" },
+    { value: "Sort the Paragraphs",   file: "sort-the-paragraphs.h5p",     icon: "fa-arrow-down-short-wide", label: "Sort the Paragraphs",    defaultUrl: WP_BASE + "example-content-sort-paragraphs-1209169.h5p" },
+    { value: "Guess the Answer",      file: "guess-the-answer.h5p",        icon: "fa-eye-slash",             label: "Guess the Answer",       defaultUrl: WP_BASE + "guess-the-answer-2402.h5p" },
+    { value: "Summary",               file: "summary.h5p",                 icon: "fa-list-check",            label: "Summary",                defaultUrl: WP_BASE + "summary-714.h5p" },
+    { value: "Interactive Video",     file: "interactive-video.h5p",       icon: "fa-video",                 label: "Interactive Video",      defaultUrl: WP_BASE + "interactive-video-2-618.h5p" },
+    { value: "Page",                  file: "page.h5p",                    icon: "fa-file-lines",            label: "Page",                   defaultUrl: WP_BASE + "h5p-column-34794.h5p" },
+    { value: "Accordion",             file: "accordion.h5p",               icon: "fa-bars-staggered",        label: "Accordion",              defaultUrl: WP_BASE + "accordion-6-7138.h5p" },
+    { value: "Crossword",             file: "crossword.h5p",               icon: "fa-table-cells",           label: "Crossword",              defaultUrl: WP_BASE + "example-content-crossword-1209160.h5p" },
+    { value: "Timeline",              file: "timeline.h5p",                icon: "fa-timeline",              label: "Timeline",               defaultUrl: WP_BASE + "timeline-3-716.h5p" },
+];
+
+const DB_NAME = "H5PWizardCache";
+const DB_VERSION = 2;
+const STORE_NAME = "templates";
+const CONFIG_STORE = "config";
+const WP_URLS_KEY = "wpUrls";
+
+let db = null;
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const d = e.target.result;
+            if (!d.objectStoreNames.contains(STORE_NAME)) d.createObjectStore(STORE_NAME);
+            if (!d.objectStoreNames.contains(CONFIG_STORE)) d.createObjectStore(CONFIG_STORE);
+        };
+        req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+        req.onerror = (e) => reject(e);
+    });
+}
+
+function dbGet(store, key) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, "readonly");
+        const req = tx.objectStore(store).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = reject;
+    });
+}
+
+function dbSet(store, key, value) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, "readwrite");
+        const req = tx.objectStore(store).put(value, key);
+        req.onsuccess = () => resolve();
+        req.onerror = reject;
+    });
+}
+
+function dbDelete(store, key) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, "readwrite");
+        const req = tx.objectStore(store).delete(key);
+        req.onsuccess = () => resolve();
+        req.onerror = reject;
+    });
+}
+
+let wpUrls = {};
+
+async function saveWpUrls() { await dbSet(CONFIG_STORE, WP_URLS_KEY, JSON.stringify(wpUrls)); }
+async function loadWpUrls() { const raw = await dbGet(CONFIG_STORE, WP_URLS_KEY); wpUrls = raw ? JSON.parse(raw) : {}; }
+function getWpUrl(typeValue) {
+    const saved = (wpUrls[typeValue] || "").trim();
+    if (saved) return saved;
+    const t = TEMPLATE_TYPES.find(x => x.value === typeValue);
+    return (t && t.defaultUrl) ? t.defaultUrl : "";
+}
+function setWpUrl(typeValue, url) { wpUrls[typeValue] = url.trim(); }
+
+let tplStatus = {};
+
+async function initTemplateManager() {
+    await openDB();
+    await loadWpUrls();
+    for (const t of TEMPLATE_TYPES) {
+        const cached = await dbGet(STORE_NAME, t.value);
+        tplStatus[t.value] = cached ? "cached" : "empty";
+    }
+    updateCacheSummary();
+    updateTypeGridBadges();
+    updatePackButton();
+    const uncached = TEMPLATE_TYPES.filter(t => tplStatus[t.value] !== "cached" && t.defaultUrl);
+    if (uncached.length > 0) { autoLoadTemplates(uncached); }
+}
+
+async function autoLoadTemplates(types) {
+    for (const t of types) {
+        tplStatus[t.value] = "loading";
+        updateCacheSummary();
+        try {
+            const buf = await fetchTemplate(t.value);
+            await dbSet(STORE_NAME, t.value, buf);
+            tplStatus[t.value] = "cached";
+        } catch(e) {
+            tplStatus[t.value] = "error";
+            console.warn("Auto-load failed:", t.value, e.message);
+        }
+        updateCacheSummary();
+        updateTypeGridBadges();
+        updatePackButton();
+    }
+}
+
+function updateCacheSummary() {}
+
+function updateTypeGridBadges() {
+    TEMPLATE_TYPES.forEach(t => {
+        const label = document.querySelector(`label[for="t-${typeToId(t.value)}"]`);
+        if (label) label.classList.toggle("has-template", tplStatus[t.value] === "cached");
+    });
+}
+
+function typeToId(val) {
+    const map = {
+        "Fill in the Blanks": "blanks", "Complex Fill in the Blanks": "complex-blanks",
+        "Drag the Words": "drag", "Mark the Words": "mark", "Multiple Choice": "mc",
+        "Question Set": "qs", "Single Choice Set": "scs", "True False": "tf",
+        "Dialog Cards": "cards", "Flashcards": "flash", "Essay": "essay",
+        "Sort the Paragraphs": "sort", "Guess the Answer": "guess", "Summary": "sum",
+        "Interactive Video": "video", "Crossword": "crossword", "Timeline": "timeline",
+        "Accordion": "accordion", "Page": "page"
+    };
+    return map[val] || val.toLowerCase();
+}
+
+function updatePackButton() {
+    const type = document.querySelector('input[name="type"]:checked').value;
+    const hasTpl = tplStatus[type] === "cached";
+    const hasJson = document.getElementById("jsonIn").value.trim().length > 0;
+    const packBtn = document.getElementById("packBtn");
+    packBtn.disabled = !(hasTpl && hasJson);
+    const infoEl = document.getElementById("activeTemplateInfo");
+    if (hasTpl) {
+        infoEl.style.background = "#f0fdf4"; infoEl.style.borderColor = "#86efac"; infoEl.style.color = "#15803d";
+        infoEl.innerHTML = `<i class="fas fa-check-circle"></i> Template f&#252;r "${type}" bereit`;
+    } else {
+        const hasUrl = getWpUrl(type).length > 0;
+        infoEl.style.background = "#fef9c3"; infoEl.style.borderColor = "#fde047"; infoEl.style.color = "#a16207";
+        infoEl.innerHTML = hasUrl ? `<i class="fas fa-cloud-download-alt"></i> Template wird geladen...` : `<i class="fas fa-exclamation-triangle"></i> Kein Template f&#252;r "${type}" verf&#252;gbar`;
+    }
+}
+
+async function fetchTemplate(typeValue) {
+    const url = getWpUrl(typeValue);
+    if (!url) throw new Error(`Keine WordPress-URL f&#252;r "${typeValue}" konfiguriert`);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} &#8211; ${url}`);
+    const buf = await resp.arrayBuffer();
+    const magic = new Uint8Array(buf, 0, 4);
+    if (!(magic[0] === 0x50 && magic[1] === 0x4B)) throw new Error("Keine g&#252;ltige H5P/ZIP-Datei");
+    return buf;
+}
+
+document.querySelectorAll('input[name="type"]').forEach(el => el.addEventListener('change', () => { updateUI(); updatePackButton(); }));
+document.getElementById("jsonIn").addEventListener("input", updatePackButton);
+
+const totalSteps = 5;
+let currentStep = 1;
+let step1Valid = false;
+const pages = Array.from({length: totalSteps}, (_, i) => document.getElementById(`page-${i + 1}`));
+const circles = Array.from({length: totalSteps}, (_, i) => document.getElementById(`circle${i + 1}`));
+const progressFill = document.getElementById('progressFill');
+
+function updateProgressStepStates() {
+    document.querySelectorAll('.progress-step').forEach(el => {
+        const step = parseInt(el.dataset.step);
+        el.classList.toggle('locked', step > 1 && !step1Valid);
+    });
+}
+
+window.navigateTo = (step) => {
+    if (step < 1 || step > totalSteps) return;
+    if (step > 1 && !step1Valid) return;
+    currentStep = step;
+    pages.forEach((page, index) => page.classList.toggle('active', index + 1 === currentStep));
+    circles.forEach((circle, index) => {
+        const stepNum = index + 1;
+        circle.classList.toggle('active', stepNum === currentStep);
+        circle.classList.toggle('complete', stepNum < currentStep);
+        circle.nextElementSibling.classList.toggle('active', stepNum === currentStep);
+    });
+    progressFill.style.width = `${((currentStep - 1) / (totalSteps - 1)) * 100}%`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (step === 5) { updatePackButton(); }
+};
+
+document.querySelectorAll('.progress-step').forEach(el => {
+    el.addEventListener('click', () => navigateTo(parseInt(el.dataset.step)));
+});
+
+const step1Fields = ['schulart', 'fach', 'klasse'];
+const step1NextBtn = document.getElementById('step1Next');
+function validateStep1() {
+    const allValid = step1Fields.every(id => {
+        if (id === 'fach') {
+            const val = document.getElementById('fach').value;
+            const wrap = document.getElementById('fach-wrap');
+            wrap.classList.toggle('valid', val !== ''); wrap.classList.toggle('invalid', val === '');
+            return val !== '';
+        }
+        const el = document.getElementById(id);
+        const isValid = el.value !== '';
+        el.classList.toggle('valid', isValid); el.classList.toggle('invalid', !isValid);
+        return isValid;
+    });
+    step1NextBtn.disabled = !allValid;
+    step1Valid = allValid;
+    updateProgressStepStates();
+}
+step1Fields.forEach(id => document.getElementById(id).addEventListener('change', validateStep1));
+document.getElementById('fach').addEventListener('change', updateUI);
+
+(function() {
+    const wrap = document.getElementById('fach-wrap');
+    const trigger = document.getElementById('fach-display');
+    const dropdown = document.getElementById('fach-dropdown');
+    const hidden = document.getElementById('fach');
+    trigger.addEventListener('click', () => wrap.classList.toggle('open'));
+    trigger.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); wrap.classList.toggle('open'); }
+        if (e.key === 'Escape') wrap.classList.remove('open');
+    });
+    dropdown.querySelectorAll('.custom-select-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            const val = opt.dataset.value;
+            hidden.value = val;
+            trigger.textContent = opt.textContent;
+            dropdown.querySelectorAll('.custom-select-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            wrap.classList.remove('open');
+            hidden.dispatchEvent(new Event('change'));
+            validateStep1(); updateUI();
+        });
+    });
+    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) wrap.classList.remove('open'); });
+})();
+step1NextBtn.addEventListener('click', () => { if (!step1NextBtn.disabled) navigateTo(2); });
+
+document.getElementById('complex-blanks-mode').addEventListener('change', function() {
+    document.getElementById('div-complex-blanks-alternatives').style.display = this.value === 'selection' ? 'block' : 'none';
+});
+
+document.getElementById('enable-feedback').addEventListener('change', function() {
+    document.getElementById('feedback-style-wrap').classList.toggle('feedback-options-disabled', !this.checked);
+});
+
+function updatePagePreview() {
+    var preview = document.getElementById('page-structure-preview');
+    if (!preview) return;
+    var colors = {intro:'#6366f1',reading:'#0ea5e9',mc:'#10b981',tf:'#f59e0b',blanks:'#ef4444',summary:'#8b5cf6'};
+    var labels = {intro:'Einleitungstext',reading:'Lesetext',mc:'Multiple Choice',tf:'True/False',blanks:'L\u00fcckentext',summary:'Summary'};
+    var chips = [];
+    document.querySelectorAll('#page-block-list .page-block-item').forEach(function(item) {
+        var id = item.dataset.block;
+        var cb = document.getElementById('page-has-' + id);
+        if (cb && cb.checked) chips.push('<span class="page-preview-chip" style="background:' + (colors[id]||'#64748b') + '">' + (labels[id]||id) + '</span>');
+    });
+    preview.innerHTML = chips.length ? chips.join('') : '<span style="color:#94a3b8;font-size:0.8rem;">Keine Elemente aktiviert</span>';
+}
+
+['intro', 'reading', 'mc', 'tf', 'blanks', 'summary'].forEach(function(id) {
+    var cb = document.getElementById('page-has-' + id);
+    if (cb) cb.addEventListener('change', function() {
+        var opts = document.getElementById('page-' + id + '-opts');
+        if (opts) opts.style.display = this.checked ? 'flex' : 'none';
+        updatePagePreview();
+    });
+});
+
+(function() {
+    var slider = document.getElementById('page-mc-answers');
+    var val = document.getElementById('page-mc-answers-val');
+    if (slider && val) slider.addEventListener('input', function() { val.textContent = this.value; });
+})();
+
+(function() {
+    var list = document.getElementById('page-block-list');
+    if (!list) return;
+    var dragSrc = null;
+    list.addEventListener('dragstart', function(e) {
+        var item = e.target.closest('.page-block-item');
+        if (!item) return;
+        dragSrc = item;
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    list.addEventListener('dragend', function() {
+        list.querySelectorAll('.page-block-item').forEach(function(i) { i.classList.remove('dragging','drag-over'); });
+        updatePagePreview();
+    });
+    list.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        var target = e.target.closest('.page-block-item');
+        list.querySelectorAll('.page-block-item').forEach(function(i) { i.classList.remove('drag-over'); });
+        if (target && target !== dragSrc) target.classList.add('drag-over');
+    });
+    list.addEventListener('drop', function(e) {
+        e.preventDefault();
+        var target = e.target.closest('.page-block-item');
+        if (!target || target === dragSrc) return;
+        var rect = target.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) list.insertBefore(dragSrc, target);
+        else list.insertBefore(dragSrc, target.nextSibling);
+        list.querySelectorAll('.page-block-item').forEach(function(i) { i.classList.remove('drag-over'); });
+        updatePagePreview();
+    });
+})();
+
+updatePagePreview();
+
+const BLOOM_BY_GOAL = {
+    vocabulary: { suggest: 'remember',   allowed: ['remember', 'understand'] },
+    grammar:    { suggest: 'apply',      allowed: ['understand', 'apply', 'analyze'] },
+    reading:    { suggest: 'understand', allowed: ['understand', 'apply', 'analyze'] },
+    factual:    { suggest: 'remember',   allowed: ['remember', 'understand', 'analyze'] },
+    transfer:   { suggest: 'apply',      allowed: ['apply', 'analyze'] },
+};
+const GOAL_HINTS = {
+    vocabulary: 'Vokabular/Fachbegriffe: Erinnern oder Verstehen empfohlen.',
+    grammar:    'Grammatik/Struktur: Verstehen, Anwenden oder Analysieren empfohlen.',
+    reading:    'Leseverstehen: Verstehen, Anwenden oder Analysieren empfohlen.',
+    factual:    'Faktenwissen: Erinnern, Verstehen oder Analysieren empfohlen.',
+    transfer:   'Transferkompetenz: Anwenden oder Analysieren empfohlen.',
+};
+
+document.getElementById('learning-goal-type').addEventListener('change', function () {
+    const goal = this.value;
+    const bloomSel = document.getElementById('bloom-level');
+    const wrap = document.getElementById('bloom-wrap');
+    const hint = document.getElementById('bloom-hint');
+    const rule = BLOOM_BY_GOAL[goal];
+    Array.from(bloomSel.options).forEach(o => o.hidden = false);
+    if (!rule) { bloomSel.value = ''; wrap.style.display = 'none'; hint.style.display = 'none'; return; }
+    Array.from(bloomSel.options).forEach(o => { if (o.value && !rule.allowed.includes(o.value)) o.hidden = true; });
+    if (!rule.allowed.includes(bloomSel.value)) bloomSel.value = rule.suggest;
+    wrap.style.display = 'block'; hint.style.display = 'block'; hint.textContent = GOAL_HINTS[goal];
+});
+
+const CARD_MODE_OPTIONS_LANG = [
+    { value: 'vocab_de_target', label: 'Vokabeln: Deutsch \u2192 Zielsprache' },
+    { value: 'vocab_target_de', label: 'Vokabeln: Zielsprache \u2192 Deutsch' },
+    { value: 'qa',              label: 'Wissensabfrage: Frage \u2192 Antwort' },
+    { value: 'term_def',        label: 'Fachbegriffe: Begriff \u2192 Definition' },
+];
+const CARD_MODE_OPTIONS_DEFAULT = [
+    { value: 'qa',       label: 'Wissensabfrage: Frage \u2192 Antwort' },
+    { value: 'term_def', label: 'Fachbegriffe: Begriff \u2192 Definition' },
+];
+
+function updateUI() {
+    const t = document.querySelector('input[name="type"]:checked').value;
+    const fach = document.getElementById('fach').value;
+    const cefrFaecher = ['Englisch', 'Franz\u00f6sisch', 'Spanisch', 'Latein', 'Deutsch als Zweitsprache'];
+    document.getElementById('div-cefr').style.display = cefrFaecher.includes(fach) ? 'block' : 'none';
+    if(t === 'Interactive Video') {
+        document.getElementById('video-opts').style.display = 'block';
+        document.getElementById('ref-desc').innerHTML = '<strong>WICHTIG:</strong> Kopiere das YouTube-Transkript <strong>MIT Zeitstempeln</strong> hier rein!';
+    } else {
+        document.getElementById('video-opts').style.display = 'none';
+        document.getElementById('ref-desc').textContent = 'F\u00fcge hier einen Text als Grundlage ein.';
+    }
+    const hintsTypes = ['Fill in the Blanks', 'Complex Fill in the Blanks'];
+    document.getElementById('enable-hints-wrap').style.display = hintsTypes.includes(t) ? 'flex' : 'none';
+    if (!hintsTypes.includes(t)) document.getElementById('enable-hints').checked = false;
+    ['opts-text','opts-complex-blanks','opts-dist','opts-mc','opts-cards','div-dist-strat','opts-crossword','opts-timeline','opts-accordion','opts-page'].forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('qs-mixed-types').style.display = 'none';
+    document.getElementById('opts-mc-multi-check').style.visibility = 'visible';
+    document.getElementById('mixed-quiz-warning').style.display = 'none';
+    document.getElementById('div-complex-blanks-alternatives').style.display = 'none';
+    if (['Fill in the Blanks','Complex Fill in the Blanks','Drag the Words','Mark the Words'].includes(t)) {
+        document.getElementById('opts-text').style.display = 'block';
+        if (t === 'Complex Fill in the Blanks') {
+            document.getElementById('opts-complex-blanks').style.display = 'block';
+            if (document.getElementById('complex-blanks-mode').value === 'selection') document.getElementById('div-complex-blanks-alternatives').style.display = 'block';
+        }
+        if (t === 'Drag the Words') { document.getElementById('opts-dist').style.display = 'block'; document.getElementById('div-dist-strat').style.display = 'block'; }
+        const infinitiveWrapper = document.getElementById('add-infinitive').closest('.checkbox-option');
+        if (t === 'Fill in the Blanks') { infinitiveWrapper.style.display = 'flex'; }
+        else { infinitiveWrapper.style.display = 'none'; document.getElementById('add-infinitive').checked = false; }
+    } else if (t === 'Multiple Choice') {
+        document.getElementById('opts-mc').style.display = 'block'; document.getElementById('div-dist-strat').style.display = 'block';
+    } else if (t === 'Question Set') {
+        document.getElementById('opts-mc').style.display = 'block'; document.getElementById('qs-mixed-types').style.display = 'block';
+        document.getElementById('mixed-quiz-warning').style.display = 'block'; document.getElementById('div-dist-strat').style.display = 'block';
+    } else if (t === 'Single Choice Set') {
+        document.getElementById('opts-mc').style.display = 'block'; document.getElementById('opts-mc-multi-check').style.visibility = 'hidden'; document.getElementById('div-dist-strat').style.display = 'block';
+    } else if (t === 'Dialog Cards' || t === 'Flashcards') {
+        document.getElementById('opts-cards').style.display = 'block';
+        const isForeignLang = cefrFaecher.includes(fach);
+        const opts = isForeignLang ? CARD_MODE_OPTIONS_LANG : CARD_MODE_OPTIONS_DEFAULT;
+        const cardModeSelect = document.getElementById('card-mode');
+        const currentVal = cardModeSelect.value;
+        cardModeSelect.innerHTML = opts.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+        if (opts.find(o => o.value === currentVal)) cardModeSelect.value = currentVal;
+    } else if (t === 'Page') { document.getElementById('opts-page').style.display = 'block';
+    } else if (t === 'Accordion') { document.getElementById('opts-accordion').style.display = 'block';
+    } else if (t === 'Crossword') { document.getElementById('opts-crossword').style.display = 'block';
+    } else if (t === 'Timeline') { document.getElementById('opts-timeline').style.display = 'block'; }
+}
+
+function getLangDefaults(fach) {
+    const map = {
+        'Englisch':   { name: 'Englisch',    fill: 'Fill in the blanks.',                      drag: 'Drag the words into the correct boxes.',   mark: 'Click on the words to highlight them.', mc: 'Choose the correct answer.',  scs: 'Choose the correct statement.' },
+        'Franz\u00f6sisch': { name: 'Franz\u00f6sisch', fill: 'Remplis les trous.',           drag: 'Glisse les mots dans les cases.',           mark: 'Clique sur les mots pour les surligner.', mc: 'Choisis la bonne r\u00e9ponse.', scs: 'Choisis la bonne r\u00e9ponse.' },
+        'Spanisch':   { name: 'Spanisch',    fill: 'Rellena los huecos.',                       drag: 'Arrastra las palabras a las casillas correctas.', mark: 'Haz clic en las palabras para resaltarlas.', mc: 'Elige la respuesta correcta.', scs: 'Elige la respuesta correcta.' },
+        'Latein':     { name: 'Latein',      fill: 'Comple sententias.',                        drag: 'Trahe verba in locos idoneos.',             mark: 'Nota verba.',                           mc: 'Elige responsum rectum.',       scs: 'Elige sententiam rectam.' }
+    };
+    return map[fach] || { name: 'Deutsch', fill: 'F\u00fclle die L\u00fccken.', drag: 'Ziehe die W\u00f6rter in die L\u00fccken.', mark: 'Markiere die W\u00f6rter.', mc: 'W\u00e4hle die richtige Antwort.', scs: 'W\u00e4hle die richtige Aussage.' };
+}
+
+function generatePrompt() {
+    const type = document.querySelector('input[name="type"]:checked').value;
+    const fach = document.getElementById('fach').value || 'einem Schulfach';
+    const klasse = document.getElementById('klasse').value || 'Sekundarstufe I';
+    const schulart = document.getElementById('schulart').value || 'allgemeinbildenden Schulen';
+    const topic = document.getElementById('topic').value || '[Thema]';
+    const task = document.getElementById('task').value || 'Erstelle didaktisch wertvolle Aufgaben.';
+    const ref = document.getElementById('ref').value;
+    const feedbackEnabled = document.getElementById('enable-feedback').checked;
+    const hintsEnabled = document.getElementById('enable-hints').checked;
+    const infinitiveEnabled = document.getElementById('add-infinitive').checked;
+    const mcMulti = document.getElementById('mc-multi').checked;
+    const diffLevel = document.getElementById('diff-level').value;
+    const distType = document.getElementById('distractor-type').value;
+    const fbStyle = document.getElementById('feedback-style').value;
+    const wc = document.getElementById('wc').value;
+    const gc = document.getElementById('gc').value;
+    const dist = document.getElementById('dist').value;
+    const ytUrl = document.getElementById('youtube-url').value;
+    const questionCount = document.getElementById('question-count').value;
+    const cefrLevel = document.getElementById('cefr-level').value;
+    const bloomLevel = document.getElementById('bloom-level').value;
+    const learningGoalType = document.getElementById('learning-goal-type').value;
+    const behaviourMode = document.getElementById('h5p-behaviour').value;
+    const complexBlanksMode = document.getElementById('complex-blanks-mode').value;
+    const complexBlanksAlternatives = document.getElementById('complex-blanks-alternatives').value;
+    const langConfig = getLangDefaults(fach);
+    const isForeignLang = langConfig.name !== 'Deutsch';
+
+    const schulartProfile = {
+        'Grundschule':           'einfache, kurze S\u00e4tze; bildhafte Sprache; max. 8\u201310 W\u00f6rter pro Satz',
+        'Werkreal-/Hauptschule': 'klare, alltagsnahe Sprache; kurze S\u00e4tze; praktische Kontexte',
+        'Realschule':            'mittlere Komplexit\u00e4t; Fachbegriffe erl\u00e4utern',
+        'Gemeinschaftsschule':   'differenzierte Aufgaben; Sprache an Klassenstufe anpassen',
+        'Gymnasium':             'komplexere Strukturen erlaubt; analytische Tiefe erw\u00fcnscht',
+        'Berufliche Schule':     'berufspraktische Kontexte; Fachterminologie des Berufsfeldes',
+        'SBBZ':                  'sehr einfache Sprache; kurze S\u00e4tze; lebensweltliche Beispiele'
+    };
+    const schulartHint = schulartProfile[schulart] || 'altersgerechte Sprache';
+
+    let p = '# MASTER PROMPT ZUR ERSTELLUNG VON H5P-INHALTEN\n\n';
+    p += 'Du bist Fachexperte f\u00fcr ' + fach + ' an der ' + schulart + '. Erstelle altersgerechtes Material f\u00fcr Klasse ' + klasse + '.\n';
+    p += '**Sprachliche Vorgabe:** ' + schulartHint + '.\n\n';
+    p += '## \u26a0\ufe0f KRITISCHE REGELN\n';
+    p += '1. **OUTPUT:** Nur valides JSON im Markdown-Codeblock.\n';
+    p += '2. **KEIN MARKDOWN IM JSON:** Niemals **fett** oder _kursiv_ in JSON-Strings.\n';
+    p += '3. **KEIN HTML:** Abs\u00e4tze mit \\n. Keine Tags wie <p> oder <br>!\n';
+    if (isForeignLang) p += '4. **ZIELSPRACHE:** Alle Texte auf **' + langConfig.name + '**!\n';
+
+    if (type === 'Page') {
+        const hasIntro=document.getElementById('page-has-intro').checked;
+        const hasReading=document.getElementById('page-has-reading').checked;
+        const hasMC=document.getElementById('page-has-mc').checked;
+        const hasTF=document.getElementById('page-has-tf').checked;
+        const hasBlanks=document.getElementById('page-has-blanks').checked;
+        const hasSummary=document.getElementById('page-has-summary').checked;
+        const mcCount=document.getElementById('page-mc-count').value||3;
+        const mcAnswers=document.getElementById('page-mc-answers').value||4;
+        const tfCount=document.getElementById('page-tf-count').value||2;
+        const blanksWords=document.getElementById('page-blanks-words').value||80;
+        const blanksGaps=document.getElementById('page-blanks-gaps').value||5;
+        const summaryCount=document.getElementById('page-summary-count').value||3;
+        const introLength=document.getElementById('page-intro-length').value||'medium';
+        const readingLength=document.getElementById('page-reading-length').value||'long';
+        const introMap={short:'2\u20133 S\u00e4tze (ca. 30\u201350 W\u00f6rter)',medium:'1 Absatz (ca. 60\u201390 W\u00f6rter)',long:'2\u20133 Abs\u00e4tze (ca. 120\u2013180 W\u00f6rter)'};
+        const readingMap={medium:'100\u2013150 W\u00f6rter, klar strukturiert',long:'200\u2013300 W\u00f6rter, abschnittweise gegliedert',verylong:'350\u2013500 W\u00f6rter, mehrere Abs\u00e4tze mit \u00dcberschrift'};
+        const blockOrder=Array.from(document.querySelectorAll('#page-block-list .page-block-item')).map(function(el){return el.dataset.block;});
+        p += '\n# AUFGABE: H5P PAGE\nThema: "' + topic + '" | ' + fach + ' | Klasse ' + klasse + '\nAusgabe: {"blocks":[...]}\n';
+        if (ref) p += '\n**Basis-Text:**\n"""\n' + ref + '\n"""\n';
+        if (diffLevel === 'scaffolding') p += '**Sprachliche Vereinfachung:** Einfache, kurze S\u00e4tze (Scaffolding).\n';
+        if (diffLevel === 'challenge') p += '**Sprachliche Anforderung:** Anspruchsvolles Vokabular (Challenge).\n';
+        if (cefrLevel) {
+            const cefrMap = {A1:'A1 \u2013 Grundvokabeln, Hauptsätze',A2:'A2 \u2013 einfacher Wortschatz, kurze Nebensätze',B1:'B1 \u2013 mittlerer Wortschatz, Nebensätze',B2:'B2 \u2013 komplexere Syntax, idiomatisch',C1:'C1 \u2013 anspruchsvoll, fachsprachlich'};
+            p += '**Sprachniveau:** ' + (cefrMap[cefrLevel] || cefrLevel) + '.\n';
+        }
+        const blockDescs = {
+            intro: hasIntro ? '- {"type":"text","text":"..."} \u2013 Einleitungstext, Umfang: ' + introMap[introLength] + '\n' : null,
+            reading: hasReading ? '- {"type":"text","text":"..."} \u2013 Lesetext f\u00fcr Leseverstehen/Information, Umfang: ' + readingMap[readingLength] + ', sachlich und klar strukturiert\n' : null,
+            mc: hasMC ? '- {"type":"mc","question":"...","answers":[{"text":"...","correct":true},{"text":"...","feedback":"Begr\u00fcndung.","correct":false},...]} \u2013 exakt ' + mcCount + ' Frage(n), exakt ' + mcAnswers + ' Antworten pro Frage\n' : null,
+            tf: hasTF ? '- {"type":"tf","question":"...","correct":"true"|"false"} \u2013 exakt ' + tfCount + ' Frage(n), correct IMMER als String! Mische "true"- und "false"-Antworten ausgewogen.\n' : null,
+            blanks: hasBlanks ? '- {"type":"blanks","text":"Zusammenh\u00e4ngender Text mit *L\u00f6sung*.","taskDescription":"..."} \u2013 ein zusammenh\u00e4ngender Flie\u00dftext mit ca. ' + blanksWords + ' W\u00f6rtern und exakt ' + blanksGaps + ' Schl\u00fcsselbegriffen als L\u00fccke (*Sternchen*). Kein einzelner Satz, sondern ein zusammenh\u00e4ngender Absatz!\n' : null,
+            summary: hasSummary ? '- {"type":"summary","statements":[["Richtige Kernaussage","Falschaussage A","Falschaussage B"],...]} \u2013 exakt ' + summaryCount + ' Gruppen. H5P-PFLICHT: Erste Aussage = korrekte Kernaussage. Falschaussagen m\u00fcssen inhaltlich plausibel, aber eindeutig falsch sein.\n' : null
+        };
+        p += '\n**Bl\u00f6cke (EXAKT in dieser Reihenfolge):**\n';
+        blockOrder.forEach(function(id) { if (blockDescs[id]) p += blockDescs[id]; });
+        p += '\n\u274c FALSCH: "correct": true bei tf (Boolean) \u2013 MUSS String "correct":"true" sein!\n';
+        p += '\u274c FALSCH: "correct": true/false bei mc als String \u2013 MUSS Boolean sein!\n';
+        p += '\u274c FALSCH: L\u00fccken mit [Wort] oder _Wort_ \u2013 MUSS *Wort* sein!\n';
+        if (task) p += '\n**Anweisung:** ' + task + '\n';
+        return p;
+    }
+    if (type === 'Accordion') {
+        const accCount=document.getElementById('accordion-count').value||5;
+        p += '\n# AUFGABE: ACCORDION\nExakt ' + accCount + ' panels. title max. 8 W\u00f6rter. text Flie\u00dftext ohne HTML/Markdown.\n';
+        p += '\n\u2705 FORMAT: {"panels":[{"title":"...","text":"..."}]}\n';
+        return p;
+    }
+    if (type === 'Crossword') {
+        const n=document.getElementById('crossword-count').value||8;
+        const isDe=!isForeignLang;
+        p += '\n# AUFGABE: KREUZWORTR\u00c4TSEL\nExakt ' + n + ' W\u00f6rter. answer in GROSSBUCHSTABEN (nur A\u2013Z + Leerzeichen).\n';
+        if (isDe) p += '\u274c Umlaute ERSETZEN: \u00c4\u2192AE, \u00d6\u2192OE, \u00dc\u2192UE, \u00df\u2192SS\n';
+        p += '\n\u2705 FORMAT: {"taskDescription":"...","words":[{"answer":"WORT","clue":"Hinweis"}]}\n';
+        return p;
+    }
+    if (type === 'Timeline') {
+        const n=document.getElementById('timeline-count').value||8;
+        const withEras=document.getElementById('timeline-eras').checked;
+        p += '\n# AUFGABE: ZEITSTRAHL\nExakt ' + n + ' Ereignisse. startDate/endDate IMMER als String ("1919"), nie als Zahl!\n';
+        const erasPart = withEras ? ',"eras":[{"startDate":"...","endDate":"...","label":"..."}]' : '';
+        p += '\n\u2705 FORMAT: {"headline":"...","intro":"...","events":[{"startDate":"1919","endDate":"1919","headline":"...","text":"..."}]' + erasPart + '}\n';
+        return p;
+    }
+    if (type === 'Interactive Video') {
+        const ytId = ytUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+        const vidId = ytId ? ytId[1] : '';
+        const vidPart = vidId ? '"videoId":"' + vidId + '",' : '';
+        p += '\n# AUFGABE: INTERAKTIVES VIDEO\nAnalysiere das Transkript und erstelle Fragen zu den Zeitstempeln.\n';
+        p += '\n# TRANSKRIPT:\n"""\n' + ref + '\n"""\n';
+        p += '\n\u2705 time: Ganzzahl in Sekunden (90, nicht "1:30")\n';
+        p += '\u274c correct bei tf: MUSS String sein "true"/"false", nie Boolean!\n';
+        p += '\n\u2705 FORMAT: {' + vidPart + '"interactions":[{"time":90,"type":"mc","question":"...","answers":[{"text":"...","correct":true}]}]}\n';
+        return p;
+    }
+
+    p += '\n---\n## INPUT\n* **Thema:** ' + topic + '\n';
+    if(ref) p += '* **Basis-Text:**\n"""\n' + ref + '\n"""\n';
+    p += '\n---\n## OUTPUT\n### 1. MATERIAL\n* **Typ:** H5P "' + type + '"\n';
+
+    if (questionCount && !['Fill in the Blanks','Complex Fill in the Blanks','Drag the Words','Mark the Words','Dialog Cards','Flashcards'].includes(type)) {
+        p += '* **Anzahl:** Exakt ' + questionCount + ' Fragen/Karten.\n';
+    }
+    if (['Dialog Cards','Flashcards'].includes(type)) {
+        const cardCount = document.getElementById('card-count').value;
+        const effectiveCount = cardCount || questionCount || '10';
+        p += '* **Anzahl:** Exakt ' + effectiveCount + ' Kartenpaare (je eine Vorder- und R\u00fcckseite pro Paar).\n';
+    }
+    if ((type === 'Multiple Choice' || type === 'Question Set') && mcMulti) p += '* **Mehrfachauswahl:** Mehrere Antworten k\u00f6nnen richtig sein.\n';
+    if (['Multiple Choice','Single Choice Set'].includes(type)) {
+        const mcOpts = document.getElementById('mc-opts').value;
+        if (mcOpts) p += '* **Optionen:** Exakt ' + mcOpts + ' pro Frage.\n';
+    }
+    if (type === 'Question Set') {
+        const mcOpts = document.getElementById('mc-opts').value;
+        if (mcOpts) p += '* **Optionen (nur mc):** Exakt ' + mcOpts + '.\n';
+        const allowed = [];
+        if (document.getElementById('qs-allow-mc').checked) allowed.push("'mc'");
+        if (document.getElementById('qs-allow-tf').checked) allowed.push("'tf'");
+        if (document.getElementById('qs-allow-blanks').checked) allowed.push("'blanks'");
+        if (document.getElementById('qs-allow-drag').checked) allowed.push("'drag'");
+        if (document.getElementById('qs-allow-mark').checked) allowed.push("'mark'");
+        const allowedStr = allowed.length > 0 ? allowed.join(', ') : "'mc', 'tf', 'drag'";
+        p += '* **Erlaubte Typen:** ' + allowedStr + '\n';
+        p += '* **PFLICHT:** Kombiniere mindestens zwei verschiedene Fragetypen, um die Aufgabe abwechslungsreich zu gestalten. Verteile die Typen gleichm\u00e4\u00dfig \u00fcber die Fragen.\n';
+    }
+    if (type === 'Complex Fill in the Blanks') {
+        if (complexBlanksMode === 'selection') {
+            const altLabel = complexBlanksAlternatives === 'answers' ? 'richtige Antworten aller anderen L\u00fccken' : 'eingegebene falsche Antworten';
+            p += '* **Modus:** Auswahlliste \u2013 Optionen: ' + altLabel + '. incorrectAnswers mind. 2\u20133 Eintr\u00e4ge!\n';
+        } else {
+            p += '* **Modus:** Freitext-Eingabe.\n';
+        }
+    }
+
+    p += '\n### 2. DIDAKTIK\n';
+    if (behaviourMode === 'test') p += '* **Testmodus:** Kein Feedback, keine L\u00f6sungshinweise.\n';
+    if (diffLevel === 'scaffolding') p += '* Einfache Sprache (Scaffolding).\n';
+    if (diffLevel === 'challenge') p += '* Anspruchsvolles Vokabular (Challenge).\n';
+    if (cefrLevel) {
+        const cefrMap = {A1:'A1 \u2013 Grundvokabeln, Haupts\u00e4tze',A2:'A2 \u2013 einfacher Wortschatz, kurze Nebens\u00e4tze',B1:'B1 \u2013 mittlerer Wortschatz, Nebens\u00e4tze',B2:'B2 \u2013 komplexere Syntax, idiomatisch',C1:'C1 \u2013 anspruchsvoll, fachsprachlich'};
+        p += '* **Sprachniveau:** ' + (cefrMap[cefrLevel] || cefrLevel) + '.\n';
+    }
+    if (learningGoalType) {
+        const goalMap = {vocabulary:'Vokabular/Fachbegriffe',grammar:'Grammatik/Struktur',reading:'Leseverstehen/Textarbeit',factual:'Faktenwissen',transfer:'Transferkompetenz'};
+        p += '* **Lernziel:** ' + (goalMap[learningGoalType] || learningGoalType) + '.\n';
+    }
+    if (bloomLevel) {
+        const bloomOps = {
+            remember: 'Fragen direkt aus dem Lernstoff, eindeutig korrekte Antwort, kein Transfer.',
+            understand: 'Paraphrasen verlangen, keine wortw\u00f6rtliche Reproduktion.',
+            apply: 'Neuen Kontext konstruieren. Lernende \u00fcbertragen Gelerntes auf neue Situation.',
+            analyze: 'Fragen zu Ursachen, Strukturen. Distraktoren = plausible Fehlschl\u00fcsse, keine offensichtlich falschen Antworten.'
+        };
+        p += '* **Bloom (' + bloomLevel + '):** ' + (bloomOps[bloomLevel] || bloomLevel) + '\n';
+    }
+    if (['Multiple Choice','Question Set','Single Choice Set'].includes(type)) {
+        const distOps = {
+            semantic:'Inhaltlich verwandte Begriffe (z.B. Lyon, Marseille \u2013 nicht "Banane").',
+            visual:'Klingen/sehen \u00e4hnlich aus (z.B. "Diffusion"/"Defusion").',
+            misconception:'Typische Denkfehler dieser Klassenstufe.',
+            mixed:'Kombiniere: mind. 1 verwandt, mind. 1 typischer Denkfehler.'
+        };
+        const bloomNote = (bloomLevel === 'analyze') ? ' ANALYSE-NIVEAU: ALLE Distraktoren m\u00fcssen plausibel wirken!' : '';
+        p += '* **Distraktoren:** ' + (distOps[distType] || '') + bloomNote + '\n';
+    }
+    if (type === 'Drag the Words' && parseInt(dist) > 0) {
+        const distOps = {semantic:'Inhaltlich verwandt.',visual:'Klingen/sehen \u00e4hnlich.',misconception:'Typische Verwechslungen.',mixed:'Verschiedene Fehlertypen.'};
+        p += '* **Distraktoren:** ' + (distOps[distType] || '') + '\n';
+    }
+
+    if (['Fill in the Blanks','Drag the Words','Mark the Words'].includes(type)) {
+        p += wc ? '* **W\u00f6rter:** ca. ' + wc + '.\n' : '* **Text:** mind. 5\u20136 S\u00e4tze.\n';
+        if (gc) p += '* **L\u00fccken:** ca. ' + gc + '.\n';
+        p += '\n**L\u00dcCKEN-SYNTAX \u2013 PFLICHT:**\n';
+        p += '\u2705 RICHTIG: `*Wort*` \u2013 genau ein Sternchen vor und nach dem L\u00f6sungswort\n';
+        p += '\u274c FALSCH: `[Wort]` | `___` | `(Wort)` | `<blank>` | `__Wort__` \u2013 niemals verwenden!\n';
+        p += '\u274c FALSCH: Komma, Anf\u00fchrungszeichen oder Schr\u00e4gstrich im L\u00f6sungswort (au\u00dfer `/` f\u00fcr Alternativen bei Complex Blanks)\n';
+    }
+    if (type === 'Fill in the Blanks') {
+        if (infinitiveEnabled) {
+            p += '\n**INFINITIV-MODUS:**\n';
+            p += '\u2705 Einwortform: `*went* (go)` \u2013 Klammer au\u00dferhalb der Sternchen\n';
+            p += '\u2705 Mehrwortform: `*was opened* (open)` \u2013 gesamte Verbgruppe in Sternchen\n';
+            p += '\u274c FALSCH: `*(went) go*` | `*went(go)*` | `*went* [go]` \u2013 Klammer NIE innerhalb!\n';
+        }
+        if (hintsEnabled) p += '* **TIPPS:** Format: `*L\u00f6sung:Tipp*` z.B. `*went:Infinitiv: go*`\n';
+        else p += '* **TIPPS:** KEINE \u2013 nur `*L\u00f6sung*` ohne Doppelpunkt.\n';
+    }
+    if (type === 'Drag the Words' && parseInt(dist) > 0) p += '* **DISTRAKTOREN:** Exakt ' + dist + ' falsche W\u00f6rter im Array "distractors".\n';
+
+    if (feedbackEnabled) {
+        const fbStyleMap = {corrective:'sachlich ("Das ist falsch. Richtig ist ...")',scaffolding:'hinweisend ("Denke nochmal nach: ...")',motivational:'motivierend ("Fast richtig! ...")'};
+        const fbHint = fbStyleMap[fbStyle] || fbStyle;
+        if (type === 'Complex Fill in the Blanks') p += '* **Feedback:** incorrectAnswers[].feedback ' + fbHint + '. Kein leerer String!\n';
+        else if (type === 'Multiple Choice') p += '* **Feedback:** tipsAndFeedback.chosenFeedback ' + fbHint + '. Kein leerer String!\n';
+        else if (type === 'Question Set') p += '* **Feedback (mc):** "feedback" je falscher Antwort ' + fbHint + '. Kein leerer String!\n';
+        else p += '* **Feedback:** Automatisch durch H5P \u2013 NICHT ins JSON kodieren.\n';
+    }
+
+    p += '\n### 3. FORMAT-BEISPIEL\n';
+    const fbStr = feedbackEnabled ? ',"tipsAndFeedback":{"chosenFeedback":"Korrekt!","notChosenFeedback":""}' : '';
+
+    if (type === 'Fill in the Blanks') {
+        const exGap = hintsEnabled ? '*1969:Jahr der Mondlandung*' : '*1969*';
+        p += '\n\u2705 RICHTIG:\n```json\n{"text":"' + langConfig.fill + '","questions":["In ' + exGap + ' landete *Apollo 11*.\\nNeil *Armstrong* betrat den Mond."]}\n```\n';
+        p += '\n\u274c FALSCH \u2013 so NICHT:\n```json\n{"questions":["In [1969] landete Apollo 11."]}  // eckige Klammern\n{"questions":["In _1969_ landete Apollo 11."]}  // Unterstriche\n{"questions":["In (1969) landete Apollo 11."]}  // runde Klammern\n```\n';
+    } else if (type === 'Complex Fill in the Blanks') {
+        p += '\n**L\u00dcCKEN:** Vier Unterstriche `____` (nicht Sternchen, nicht 3 Striche)!\n';
+        p += '\u2705 RICHTIG: `"text": "In ____ landete Apollo 11."`\n';
+        p += '\u274c FALSCH: `"text": "In *1969* landete Apollo 11."`  // Sternchen hier falsch!\n';
+        p += '\u274c FALSCH: `"text": "In ___ landete Apollo 11."`  // drei statt vier Striche\n';
+        const hintEx = hintsEnabled ? '"hint":"Das Jahr","' : '"';
+        if (complexBlanksMode === 'selection') {
+            p += '\n\u2705 RICHTIG (Auswahlmodus):\n```json\n{"taskDescription":"' + langConfig.fill + '","text":"In ____ landete Apollo 11.","blanks":[{"correct":"1969",' + hintEx + '"incorrectAnswers":[{"text":"1968","feedback":"Ein Jahr zu fr\u00fch."},{"text":"1971","feedback":"Das war Apollo 14."}]}]}\n```\n';
+            p += '\n\u274c FALSCH: "incorrectAnswers":[] \u2013 leere Liste im Auswahlmodus produziert keine Auswahlliste!\n';
+        } else {
+            p += '\n\u2705 RICHTIG:\n```json\n{"taskDescription":"' + langConfig.fill + '","text":"In ____ landete Apollo 11.","blanks":[{"correct":"1969",' + hintEx + '"incorrectAnswers":[{"text":"1968","feedback":"Ein Jahr zu fr\u00fch."}]}]}\n```\n';
+        }
+    } else if (type === 'Drag the Words') {
+        const distEx = parseInt(dist) > 0 ? ',"distractors":["Planet","Satellit"]' : '';
+        p += '\n\u2705 RICHTIG:\n```json\n{"taskDescription":"' + langConfig.drag + '","textField":"Die *Erde* dreht sich um die *Sonne*."' + distEx + '}\n```\n';
+        p += '\n\u274c FALSCH:\n```json\n{"textField":"Die [Erde] dreht sich um _Sonne_."}  // falsche Markierungen\n{"textField":"Die *Erde* dreht um [Satellit]."}  // Distraktor im Text statt im Array!\n```\n';
+    } else if (type === 'Mark the Words') {
+        p += '\n\u2705 RICHTIG (Verben markieren):\n```json\n{"taskDescription":"' + langConfig.mark + '","textField":"Der Hund *rennt* schnell. Die Katze *schl\u00e4ft* und *faulenzt*."}\n```\n';
+        p += '\n\u274c FALSCH:\n```json\n{"textField":"Der Hund [rennt] schnell."}  // eckige Klammern\n{"textField":"Der Hund rennt. Die Katze *schl\u00e4ft* und faulenzt."}  // faulenzt fehlt \u2013 gilt als Fehler!\n```\n';
+    } else if (type === 'Multiple Choice') {
+        const fbReq = ',"feedback":"Kurze Begr\u00fcndung, warum diese Antwort falsch ist."';
+        if (mcMulti) {
+            p += '\n**Pflicht:** Mind. 2 Antworten mit "correct":true.\n';
+            p += '**Feedback-Pflicht:** Jede falsche Antwort ben\u00f6tigt ein "feedback"-Feld (1\u20132 S\u00e4tze).\n';
+            p += '\u2705 RICHTIG:\n```json\n{"text":"' + langConfig.mc + '","answers":[{"text":"Richtig 1","correct":true' + fbStr + '},{"text":"Richtig 2","correct":true' + fbStr + '},{"text":"Falsche Option"' + fbReq + ',"correct":false' + fbStr + '}]}\n```\n';
+        } else {
+            p += '\n**Pflicht 1:** Genau EINE Antwort "correct":true!\n';
+            p += '**Pflicht 2:** Jede **falsche** Antwort ben\u00f6tigt ein "feedback"-Feld, das den Denkfehler erl\u00e4utert (1\u20132 S\u00e4tze).\n';
+            p += '\u2705 RICHTIG:\n```json\n{"text":"' + langConfig.mc + '","answers":[{"text":"Richtige Antwort","correct":true' + fbStr + '},{"text":"Falsche Option 1"' + fbReq + ',"correct":false' + fbStr + '},{"text":"Falsche Option 2"' + fbReq + ',"correct":false' + fbStr + '}]}\n```\n';
+            p += '\u274c FALSCH:\n```json\n{"answers":[{"correct":true},{"correct":true}]}  // zwei true bei Einzelauswahl!\n{"answers":[{"text":"Falsch","correct":false}]}  // feedback-Feld fehlt bei falscher Antwort!\n```\n';
+        }
+    } else if (type === 'Question Set') {
+        const qsAllowed = [];
+        if (document.getElementById('qs-allow-mc').checked) qsAllowed.push('mc');
+        if (document.getElementById('qs-allow-tf').checked) qsAllowed.push('tf');
+        if (document.getElementById('qs-allow-blanks').checked) qsAllowed.push('blanks');
+        if (document.getElementById('qs-allow-drag').checked) qsAllowed.push('drag');
+        if (document.getElementById('qs-allow-mark').checked) qsAllowed.push('mark');
+        const mcOptCount = parseInt(document.getElementById('mc-opts').value) || 3;
+        const exWrongPool = [
+            '{"text":"1919","feedback":"1919 war das Jahr des Versailler Vertrags, nicht der Ausrufung.","correct":false}',
+            '{"text":"1923","feedback":"1923 war das Jahr des Hitler-Putsches.","correct":false}',
+            '{"text":"1921","feedback":"1921 war kein entscheidendes Jahr der Ausrufung.","correct":false}',
+            '{"text":"1916","feedback":"1916 war noch der Erste Weltkrieg.","correct":false}'
+        ];
+        const exampleQs = [];
+        if (qsAllowed.length === 0 || qsAllowed.includes('mc')) {
+            const wrongAnswers = exWrongPool.slice(0, mcOptCount - 1);
+            const mcAnswers = ['{"text":"1918","correct":true}', ...wrongAnswers].join(',');
+            exampleQs.push('  {"type":"mc","text":"Wann wurde die Weimarer Republik ausgerufen?","answers":[' + mcAnswers + ']}');
+        }
+        if (qsAllowed.includes('tf')) {
+            exampleQs.push('  {"type":"tf","question":"Die Dolchsto\u00dflegende war historisch belegt.","correct":"false","feedback":"Die Legende war Propaganda. Das deutsche Heer war milit\u00e4risch geschlagen, nicht von innen verraten."}');
+        }
+        if (qsAllowed.includes('blanks')) {
+            exampleQs.push('  {"type":"blanks","text":"Die *Inflation* von 1923 traf vor allem die *Mittelschicht*."}');
+        }
+        if (qsAllowed.includes('drag')) {
+            exampleQs.push('  {"type":"drag","textField":"Die *Inflation* von 1923 vernichtete die Ersp\u00e4rnisse der *Mittelschicht*."}');
+        }
+        if (qsAllowed.includes('mark')) {
+            exampleQs.push('  {"type":"mark","textField":"Die Weimarer Republik *scheiterte* 1933 und *endete* mit Hitlers Ernennung."}');
+        }
+        p += '\n**Feedback-Pflicht:** Bei mc-Fragen muss jede falsche Antwort ein "feedback"-Feld enthalten!\n';
+        p += '\u2705 RICHTIG:\n```json\n{"questions":[\n' + exampleQs.join(',\n') + '\n]}\n```\n';
+        p += '\u274c FALSCH bei tf: "correct":true (Boolean) \u2013 MUSS String "correct":"true" sein!\n';
+        if (qsAllowed.includes('blanks') || qsAllowed.includes('drag') || qsAllowed.includes('mark')) {
+            p += '\u274c FALSCH bei blanks/drag/mark: [Wort] oder _Wort_ \u2013 MUSS Sternchen *Wort* sein!\n';
+        }
+    } else if (type === 'Single Choice Set') {
+        p += '\n**Pflicht:** Erste Antwort in answers ist immer richtig.\n';
+        p += '\u2705 RICHTIG:\n```json\n{"choices":[{"question":"' + langConfig.scs + '","answers":["Richtig","Falsch 1","Falsch 2"]}]}\n```\n';
+        p += '\u274c FALSCH: "answers":[{"text":"Richtig","correct":true}] \u2013 SCS braucht Strings, keine Objekte!\n';
+    } else if (type === 'True False') {
+        p += '* **DIDAKTIK:** Formuliere Aussagen, die auf typischen Missverst\u00e4ndnissen oder Verallgemeinerungen basieren und eine genaue Analyse erfordern. Vermeide offensichtlich wahre oder falsche Trivialaussagen.\n';
+        p += '* **FEEDBACK PFLICHT:** Jede Frage ben\u00f6tigt ein \`feedback\`-Feld mit einer kurzen Begr\u00fcndung, die den Denkfehler aufkl\u00e4rt (1\u20132 S\u00e4tze).\n';
+        p += '\n**Pflicht 1:** "correct" MUSS String sein!\n';
+        p += '\u2705 RICHTIG: "correct":"true" oder "correct":"false" \u2013 MIT Anf\u00fchrungszeichen\n';
+        p += '\u274c FALSCH: "correct":true \u2013 Boolean f\u00fchrt zu Fehlern!\n';
+        p += '\n**Pflicht 2:** Jede Frage MUSS ein "feedback"-Feld mit Begr\u00fcndung enthalten (1\u20132 S\u00e4tze)!\n';
+        p += '\u2705 BEISPIEL:\n```json\n{"question":"Der Versailler Vertrag war die alleinige Ursache f\u00fcr den Aufstieg der NSDAP.","correct":"false","feedback":"Diese Aussage ist falsch: Der Vertrag war einer von mehreren Faktoren. Wirtschaftskrise, Hyperinflation und politische Instabilit\u00e4t trugen ebenso entscheidend bei."}\n```\n';
+        p += '\u274c FALSCH:\n```json\n{"question":"...","correct":"false"}  // kein feedback-Feld \u2013 Pflicht!\n{"question":"...","correct":false}   // Boolean statt String!\n```\n';
+    } else if (type === 'Dialog Cards' || type === 'Flashcards') {
+        const cardModeVal = document.getElementById('card-mode').value;
+        const exMap = {vocab_de_target:{f:'der Hund',b:'dog'},vocab_target_de:{f:'dog',b:'der Hund'},qa:{f:'Was ist die Hauptstadt Frankreichs?',b:'Paris'},term_def:{f:'Photosynthese',b:'Pflanzen wandeln Licht in Glucose um'}};
+        const ex = exMap[cardModeVal] || exMap.qa;
+        p += '\n\u2705 RICHTIG:\n```json\n{"cards":[{"text":"' + ex.f + '","answer":"' + ex.b + '"}]}\n```\n';
+    } else if (type === 'Sort the Paragraphs') {
+        p += '\n**DIDAKTIK:** Die Abs\u00e4tze sollen einen klar erkennbaren Zusammenhang abbilden \u2013 w\u00e4hle einen dieser Strukturtypen:\n';
+        p += '  - **Chronologisch:** zeitliche Abfolge (z.B. Phasen, Entwicklungen)\n';
+        p += '  - **Kausal:** Ursache \u2192 Verlauf \u2192 Wirkung\n';
+        p += '  - **Argumentativ:** These \u2192 Argument \u2192 Beispiel \u2192 Schluss\n';
+        p += 'Jeder Absatz muss inhaltlich \u2013 ohne die anderen zu sehen \u2013 als n\u00e4chster Schritt erkennbar sein (kein beliebig austauschbarer Flie\u00dftext).\n';
+        p += '\n**Pflicht:** In der RICHTIGEN Reihenfolge liefern! H5P mischt automatisch.\n';
+        p += '\u2705 RICHTIG:\n```json\n{"paragraphs":["1. Ursache: Die Wirtschaftskrise ab 1929 f\u00fchrte zu Massenarbeitslosigkeit.","2. Verlauf: Radikale Parteien gewannen Zulauf und destabilisierten die Republik.","3. Wirkung: Die NSDAP nutzte die Krise und gewann die Wahl vom Januar 1933."]}\n```\n';
+        p += '\u274c FALSCH: Beliebig austauschbare S\u00e4tze ohne erkennbare Reihenfolgelogik!\n';
+    } else if (type === 'Summary') {
+        p += '\n**Struktur:** Erster String = richtig. Alle weiteren = Distraktoren.\n';
+        p += '\u2705 RICHTIG:\n```json\n{"summaries":[["Richtige Kernaussage 1.","Falsch 1a.","Falsch 1b."],["Richtige Kernaussage 2.","Falsch 2a."]]}\n```\n';
+        p += '\u274c FALSCH: ["Falsch","Richtig"] \u2013 richtige Aussage MUSS an erster Stelle!\n';
+    } else if (type === 'Guess the Answer') {
+        p += '\u2705 BEISPIEL:\n```json\n{"taskDescription":"Welches Organ pumpt Blut?","solutionLabel":"L\u00f6sung","solutionText":"Das Herz."}\n```\n';
+    }
+
+    const distraktTypes = ['Multiple Choice','Question Set','Single Choice Set','Drag the Words'];
+    if (distraktTypes.includes(type)) {
+        p += '\n### 4. SELBSTPR\u00dcFUNG VOR DER AUSGABE\n';
+        p += 'Pr\u00fcfe **jeden Distraktor** gegen diese Checkliste. Ersetze, was nicht besteht:\n\n';
+        p += '- [ ] W\u00fcrde ein Sch\u00fcler (Klasse ' + klasse + ', ' + schulart + ') diese Antwort ernsthaft in Betracht ziehen?\n';
+        p += '- [ ] Ist der Distraktor inhaltlich plausibel \u2013 nicht offensichtlich absurd oder themenfern?\n';
+        p += '- [ ] Unterscheidet er sich klar genug von der richtigen Antwort?\n';
+        p += '- [ ] Ist kein Distraktor versehentlich auch richtig (Doppell\u00f6sung)?\n\n';
+        p += '\u274c Distraktor besteht Pr\u00fcfung nicht \u2192 ersetzen, dann erst JSON ausgeben.\n\n';
+        p += '### 5. FINALES FORMAT\nNur JSON, kein Text davor/danach:\n```json\n{ ... }\n```\n';
+        p += '\n### 6. ANWEISUNG\n' + task + '\n';
+    } else {
+        p += '\n### 4. FINALES FORMAT\nNur JSON, kein Text davor/danach:\n```json\n{ ... }\n```\n';
+        p += '\n### 5. ANWEISUNG\n' + task + '\n';
+    }
+    return p;
+}
+
+document.getElementById('genBtn').addEventListener('click', () => {
+    const promptText = generatePrompt();
+    navigator.clipboard.writeText(promptText);
+    const s = document.getElementById('genStatus');
+    s.style.display = 'block';
+    setTimeout(() => s.style.display = 'none', 2000);
+
+    const box = document.getElementById('next-steps-box');
+    const hidden = localStorage.getItem('hideNextSteps') === 'true';
+    if (!hidden) { box.style.display = 'block'; box.open = true; }
+});
+
+document.getElementById('hide-next-steps').addEventListener('change', function() {
+    localStorage.setItem('hideNextSteps', this.checked ? 'true' : 'false');
+});
+
+// =========================================================
+// PACKER LOGIC
+// =========================================================
+function sanitizeJSON(input) { return input.replace(/```json/gi, '').replace(/```/g, '').trim().replace(/\/\/.*$/gm, '').replace(/,(\s*[}\]])/g, '$1'); }
+function uuidv4() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { var r = Math.random()*16|0, v = c=='x'?r:(r&0x3|0x8); return v.toString(16); }); }
+function cleanText(txt) { if(!txt) return ""; return txt.replace(/\*([^*]+)\*/g, '$1').trim(); }
+function cleanTextForSCS(txt) { if(!txt) return ""; return txt.replace(/\*([^*]+)\*/g, '$1').replace(/<\/?[^>]+(>|$)/g, "").trim(); }
+function parseTime(timeStr) { if(!timeStr) return 10; if(typeof timeStr === 'string' && timeStr.includes(':')) { const parts = timeStr.split(':'); return parseInt(parts[0])*60 + parseInt(parts[1]); } return parseInt(timeStr); }
+function formatToHtml(txt, useParagraphs) {
+    if (!txt) return "";
+    txt = txt.replace(/<\/?(p|div|br)[^>]*>/gi, '\n').replace(/\n\s*\n/g, '\n').trim();
+    const lines = txt.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (useParagraphs) return lines.map(line => '<p>' + line + '</p>').join('');
+    return lines.join('\n');
+}
+function findLib(machineName, dependencies) {
+    if (!dependencies) return machineName + " 1.0";
+    const dep = dependencies.find(d => d.machineName === machineName);
+    if (dep) return machineName + ' ' + dep.majorVersion + '.' + dep.minorVersion;
+    const defaults = { "H5P.MultiChoice": "1.16", "H5P.Blanks": "1.14", "H5P.DragText": "1.10", "H5P.MarkTheWords": "1.11", "H5P.TrueFalse": "1.8", "H5P.QuestionSet": "1.20" };
+    return machineName + ' ' + (defaults[machineName] || '1.0');
+}
+
+function mapToH5PStructure(simpleData, type, dependencies, youtubeUrl) {
+    let qArray = [];
+    if (Array.isArray(simpleData)) qArray = simpleData;
+    else if (simpleData.questions && Array.isArray(simpleData.questions)) qArray = simpleData.questions;
+    else if (simpleData.choices && Array.isArray(simpleData.choices)) qArray = simpleData.choices;
+    else if (simpleData.cards && Array.isArray(simpleData.cards)) qArray = simpleData.cards;
+    else if (simpleData.dialogs && Array.isArray(simpleData.dialogs)) qArray = simpleData.dialogs;
+    else if (simpleData.summaries && Array.isArray(simpleData.summaries)) qArray = simpleData.summaries;
+
+    const behaviourMode = document.getElementById('h5p-behaviour').value;
+    const enableRetry = behaviourMode === 'practice';
+    const enableSolutions = behaviourMode === 'practice';
+    const mcMulti = document.getElementById('mc-multi').checked;
+    const isSingleAnswer = !mcMulti;
+    const feedbackEnabled = document.getElementById('enable-feedback').checked;
+    const fach = document.getElementById('fach').value;
+    const langConfig = getLangDefaults(fach);
+
+    const fbLangMap = {
+        'Englisch':      ['Fantastic! Well done!','Good job! Keep it up!','Not bad! Try again.','Keep practising!','Ooops! Have another go!'],
+        'Franz\u00f6sisch': ['Fantastique\u00a0! Bravo\u00a0!','Bien joué\u00a0! Continue!','Pas mal! Réessaie.','Continue à t\'entraîner!','Ooops! Encore un essai!'],
+        'Spanisch':      ['¡Fantástico!','¡Buen trabajo!','¡Nada mal!','¡Sigue practicando!','¡Ooops! ¡Inténtalo otra vez!'],
+        'Latein':        ['Optime! Bene factum!','Bene fecisti! Perge!','Non malum! Conare iterum.','Exercitare perge! Potes!','Ooops! Conare iterum!'],
+    };
+    const fbLang = fbLangMap[fach] || ['Fantastisch! Sehr gut!','Gut gemacht! Weiter so!','Nicht schlecht! Nochmal.','Weiter üben!','Ooops! Nochmal.'];
+    const defaultFeedback = feedbackEnabled ? [
+        {"from":90,"to":100,"feedback":fbLang[0]},{"from":70,"to":89,"feedback":fbLang[1]},
+        {"from":50,"to":69,"feedback":fbLang[2]},{"from":21,"to":49,"feedback":fbLang[3]},
+        {"from":0,"to":20,"feedback":fbLang[4]}
+    ] : [];
+    const defaultBehaviour = {"enableRetry":enableRetry,"enableSolutionsButton":enableSolutions};
+
+    if (type === 'Question Set') {
+        const mappedQs = qArray.map(q => {
+            let libStr = findLib("H5P.MultiChoice", dependencies);
+            let params = {};
+            if (!q.type || q.type === 'mc') {
+                let cleanAnswers = [];
+                if (q.answers && typeof q.answers[0] === 'string') cleanAnswers = q.answers.map((a,i) => ({text:"<div>"+cleanText(a)+"</div>",correct:i===0,tipsAndFeedback:{tip:"",chosenFeedback:""}}));
+                else cleanAnswers = (q.answers||[]).map(a => ({text:"<div>"+cleanText(a.text)+"</div>",correct:a.correct,tipsAndFeedback:{tip:"",chosenFeedback:a.feedback||""}}));
+                params = {question:"<div>"+(q.text||q.question||'').replace(/\*/g,'')+"</div>",answers:cleanAnswers,behaviour:{singleAnswer:isSingleAnswer,enableRetry}};
+            } else if (q.type === 'tf') {
+                libStr = findLib("H5P.TrueFalse", dependencies);
+                const tfFeedback = q.feedback ? {onCorrect:q.feedback,onWrong:q.feedback} : undefined;
+                params = {question:"<div>"+(q.text||q.question||'')+"</div>",correct:(q.correct===true||q.correct==="true")?"true":"false",...(tfFeedback && {feedback:tfFeedback}),behaviour:defaultBehaviour};
+            } else if (q.type === 'blanks') {
+                libStr = findLib("H5P.Blanks", dependencies);
+                let txt = q.text || (q.questions && q.questions[0]) || '';
+                txt = formatToHtml(txt, true);
+                params = {text:"<div>"+langConfig.fill+"</div>",questions:[txt],behaviour:{...defaultBehaviour,autoCheck:false}};
+            } else if (q.type === 'drag') {
+                libStr = findLib("H5P.DragText", dependencies);
+                let txt = formatToHtml(q.textField||q.text||'', false);
+                params = {taskDescription:langConfig.drag,textField:txt,behaviour:defaultBehaviour};
+            } else if (q.type === 'mark') {
+                libStr = findLib("H5P.MarkTheWords", dependencies);
+                let txt = formatToHtml(q.textField||q.text||'', false);
+                params = {taskDescription:cleanTextForSCS(q.taskDescription||langConfig.mark),textField:txt,behaviour:defaultBehaviour};
+            }
+            return {library:libStr,subContentId:uuidv4(),metadata:{contentType:libStr.split(' ')[0],license:"U",title:"Frage"},params};
+        });
+        return {questions:mappedQs,passPercentage:50,progressType:"dots",endGame:{showResultPage:true,showSolutionButton:enableSolutions,showRetryButton:enableRetry}};
+    }
+
+    if (type === 'Interactive Video') {
+        const mcLib = findLib("H5P.MultiChoice", dependencies);
+        const tfLib = findLib("H5P.TrueFalse", dependencies);
+        const interactions = (simpleData.interactions||[]).map(item => {
+            const seconds = parseTime(item.time);
+            let actionLib, actionParams, contentType, title;
+            if (item.type === 'tf') {
+                actionLib = tfLib; contentType = "TrueFalse"; title = "Wahr/Falsch";
+                actionParams = {question:formatToHtml(item.question,true),correct:(item.correct===true||item.correct==="true")?"true":"false",behaviour:{enableRetry,enableSolutionsButton:enableSolutions,confirmCheck:false}};
+            } else {
+                actionLib = mcLib; contentType = "MultiChoice"; title = "Multiple Choice";
+                actionParams = {question:formatToHtml(item.question,true),answers:(item.answers||[]).map(a=>({text:"<div>"+a.text+"</div>",correct:a.correct,tipsAndFeedback:{chosenFeedback:"",notChosenFeedback:""}})),behaviour:{singleAnswer:true,enableRetry,enableSolutionsButton:enableSolutions},media:{type:""}};
+            }
+            return {action:{library:actionLib,params:actionParams,subContentId:uuidv4(),metadata:{contentType,license:"U",title}},className:"h5p-interactive-video-interaction",displayType:"poster",pause:true,duration:{from:seconds,to:seconds+5},x:50,y:50};
+        });
+        let videoFiles = [];
+        if(youtubeUrl) videoFiles = [{path:youtubeUrl,mime:"video/YouTube",copyright:{license:"U"}}];
+        return {interactiveVideo:{assets:{interactions},video:{files:videoFiles,startScreenOptions:{title:"Video Quiz",hideStartTitle:false}}}};
+    }
+
+    if (type === 'Dialog Cards') { return {dialogs:qArray.map(card=>({text:cleanText(card.text||card.question||''),answer:cleanText(card.answer||card.solution||'')})),behaviour:{enableRetry}}; }
+    if (type === 'Flashcards') { return {cards:qArray.map(card=>({text:cleanText(card.text||card.question||''),answer:cleanText(card.answer||card.solution||''),tip:""})),behaviour:defaultBehaviour}; }
+
+    if (type === 'Single Choice Set') {
+        const choices = qArray.map(q => {
+            let ansList = [];
+            if (q.answers && typeof q.answers[0] === 'string') ansList = q.answers.map(str => cleanTextForSCS(str));
+            else if (q.answers && typeof q.answers[0] === 'object') {
+                const correct = q.answers.filter(a=>a.correct); const wrong = q.answers.filter(a=>!a.correct);
+                if(correct.length>0) ansList = [cleanTextForSCS(correct[0].text), ...wrong.map(w=>cleanTextForSCS(w.text))];
+            }
+            if(ansList.length===0) return null;
+            return {subContentId:uuidv4(),question:(q.text||q.question||'').replace(/\*/g,''),answers:ansList};
+        }).filter(x=>x!==null);
+        return {choices,behaviour:{autoContinue:true,timeoutCorrect:2000,timeoutWrong:3000,soundEffectsEnabled:true,enableRetry,enableSolutionsButton:enableSolutions}};
+    }
+
+    if (type === 'Multiple Choice') {
+        let q = qArray.length>0 ? qArray[0] : simpleData;
+        if(q.answers && typeof q.answers[0]==='string') q.answers = q.answers.map((a,i)=>({text:a,correct:i===0,tipsAndFeedback:{chosenFeedback:"",tip:""}}));
+        else if(q.answers) q.answers = q.answers.map(a=>({text:a.text,correct:a.correct,tipsAndFeedback:{chosenFeedback:a.feedback||"",tip:a.tip||""}}));
+        if(q.text && !q.question) q.question = q.text;
+        q.behaviour = {singleAnswer:isSingleAnswer,enableRetry,enableSolutionsButton:enableSolutions};
+        return q;
+    }
+
+    if (type === 'Summary') {
+        const summaries = qArray.map(s => {let tips=s.summary||s; return {subContentId:uuidv4(),summary:tips.map(t=>"<div>"+t+"</div>"),tip:""};});
+        return {summaries,intro:"Fasse zusammen:"};
+    }
+
+    if (type === 'Complex Fill in the Blanks') {
+        const complexBlanksMode = document.getElementById('complex-blanks-mode').value;
+        const complexBlanksAlternatives = document.getElementById('complex-blanks-alternatives').value;
+        const showTips = document.getElementById('enable-hints').checked;
+        const task = simpleData.taskDescription || langConfig.fill;
+        let blanksText = simpleData.text || simpleData.textField || simpleData.blanksText || "";
+        if (Array.isArray(blanksText)) blanksText = blanksText.join("\n");
+        if (!blanksText.startsWith("<")) blanksText = "<p>" + blanksText.replace(/\n/g, "</p><p>") + "</p>";
+        blanksText = blanksText.replace(/_{2,}/g, "____");
+        const blanksList = (simpleData.blanks || simpleData.blanksList || []).map(b => {
+            const correctAnswerText = Array.isArray(b.correct) ? b.correct.join("/") : (b.correct || b.correctAnswerText || "");
+            const hint = showTips ? (b.hint || b.tip || "") : "";
+            const incorrectAnswersList = (b.incorrectAnswers || b.incorrectAnswersList || []).map(ia => ({
+                incorrectAnswerText: ia.text || ia.incorrectAnswerText || "",
+                incorrectAnswerFeedback: ia.feedback ? "<div>"+ia.feedback+"</div>" : (ia.incorrectAnswerFeedback || ""),
+                showHighlight: false, highlight: "-1"
+            }));
+            return {correctAnswerText,hint,incorrectAnswersList};
+        });
+        return {
+            overallFeedback: defaultFeedback,
+            behaviour: {enableRetry,enableSolutionsButton:enableSolutions,autoCheck:false,caseSensitive:false,showSolutionsRequiresInput:true,mode:complexBlanksMode,selectAlternatives:complexBlanksMode==='selection'?complexBlanksAlternatives:"alternatives",selectAlternativeRestriction:5,spellingErrorBehaviour:"mistake",enableCheckButton:true,confirmCheckDialog:false,confirmRetryDialog:false},
+            media: {disableImageZooming:false},
+            content: {task,blanksText,blanksList},
+            showSolutions:"Lösung anzeigen",tryAgain:"Wiederholen",checkAnswer:"Überprüfen",submitAnswer:"Submit",
+            notFilledOut:"Bitte fülle alle Lücken aus",tipLabel:"Tipp",
+            spellingMistakeWarning:"Überprüfe die Rechtschreibung: @mistake",
+            scoreBarLabel:"Du hast :num von :total Punkten erreicht",
+            confirmCheck:{header:"Beenden?",body:"Ganz sicher beenden?",cancelLabel:"Abbrechen",confirmLabel:"Beenden"},
+            confirmRetry:{header:"Wiederholen?",body:"Ganz sicher?",cancelLabel:"Abbrechen",confirmLabel:"Bestätigen"}
+        };
+    }
+
+    if (type === 'Fill in the Blanks') {
+        let contentText = "", instruction = langConfig.fill;
+        if(simpleData.questions && Array.isArray(simpleData.questions)) contentText = simpleData.questions.map(q=>formatToHtml(q,true)).join("");
+        else if(simpleData.text && simpleData.text.includes('*')) { contentText = formatToHtml(simpleData.text,true); if(simpleData.taskDescription) instruction=simpleData.taskDescription; }
+        else if(simpleData.textField) contentText = formatToHtml(simpleData.textField,true);
+        if(simpleData.text && !simpleData.text.includes('*')) instruction = simpleData.text;
+        if(!instruction.startsWith("<")) instruction = "<div>"+instruction+"</div>";
+        return {text:instruction,questions:[contentText],overallFeedback:defaultFeedback,behaviour:{...defaultBehaviour,autoCheck:false,caseSensitive:true,showSolutionsRequiresInput:true,separateLines:false}};
+    }
+
+    if (['Drag the Words','Mark the Words'].includes(type)) {
+        let txt = simpleData.textField||simpleData.text||"";
+        if(Array.isArray(txt)) txt = txt.join("\n");
+        txt = formatToHtml(txt, false);
+        let cleanTask = cleanTextForSCS(simpleData.taskDescription||(type==='Drag the Words'?langConfig.drag:langConfig.mark));
+        let distractors = "";
+        if(type==='Drag the Words' && simpleData.distractors && Array.isArray(simpleData.distractors)) distractors = simpleData.distractors.join('\n');
+        return {taskDescription:cleanTask,textField:txt,overallFeedback:defaultFeedback,behaviour:defaultBehaviour,distractors};
+    }
+
+    if (type === 'Page') {
+        function makeSubId(i) { return 'sub-'+i+'-'+Math.random().toString(36).slice(2,9); }
+        const mappedContent = (simpleData.blocks || []).map((b, i) => {
+            if (b.type === 'text') {
+                return {useSeparator:'auto',content:{params:{text:"<p>"+(b.text||'').replace(/\n/g,"</p>\n<p>")+"</p>"},library:'H5P.AdvancedText 1.1',subContentId:makeSubId(i),metadata:{contentType:'Text',license:'U',title:'Untitled Text'}}};
+            }
+            if (b.type === 'mc') {
+                const answers = (b.answers||[]).map(a=>({correct:!!a.correct,text:"<div>"+(a.text||'')+"</div>",tipsAndFeedback:{tip:'',chosenFeedback:a.feedback||'',notChosenFeedback:''}}));
+                return {useSeparator:'auto',content:{params:{question:"<p>"+(b.question||'')+"</p>",answers,overallFeedback:[{from:0,to:0},{from:1,to:100}],UI:{},behaviour:{enableRetry:true,enableSolutionsButton:true,randomAnswers:true,singlePoint:false}},library:'H5P.MultiChoice 1.16',subContentId:makeSubId(i),metadata:{contentType:'Multiple Choice',license:'U',title:b.question||''}}};
+            }
+            if (b.type === 'tf') {
+                return {useSeparator:'auto',content:{params:{question:"<p>"+(b.question||'')+"</p>",correct:String(b.correct),l10n:{trueText:"Wahr",falseText:"Falsch"},behaviour:{enableRetry:true,enableSolutionsButton:true}},library:'H5P.TrueFalse 1.8',subContentId:makeSubId(i),metadata:{contentType:'True/False Question',license:'U',title:b.question||''}}};
+            }
+            if (b.type === 'blanks') {
+                return {useSeparator:'auto',content:{params:{text:b.taskDescription||'Fülle die Lücken.',questions:[b.text||''],overallFeedback:[{from:0,to:100}],behaviour:{enableRetry:true,enableSolutionsButton:true,autoCheck:false,caseSensitive:false}},library:'H5P.Blanks 1.14',subContentId:makeSubId(i),metadata:{contentType:'Fill in the Blanks',license:'U',title:'Fill in the Blanks'}}};
+            }
+            if (b.type === 'summary') {
+                const summaries = (b.statements||[]).map(arr=>({subContentId:makeSubId(i+Math.random()),summary:arr.map(s=>"<div>"+s+"</div>"),tip:''}));
+                return {useSeparator:'auto',content:{params:{summaries,intro:'Wähle die richtigen Aussagen:'},library:'H5P.Summary 1.10',subContentId:makeSubId(i),metadata:{contentType:'Summary',license:'U',title:'Summary'}}};
+            }
+            return null;
+        }).filter(Boolean);
+        return {content:mappedContent};
+    }
+
+    if (type === 'Accordion') {
+        const panels = (simpleData.panels||[]).map((p,i)=>({title:p.title||'',content:{params:{text:"<p>"+(p.text||'').replace(/\n/g,"</p>\n<p>")+"</p>"},library:'H5P.AdvancedText 1.1',subContentId:'accordion-'+i+'-'+Math.random().toString(36).slice(2,10),metadata:{contentType:'Text',license:'U',title:'Untitled Text'}}}));
+        return {panels,hTag:'h2'};
+    }
+
+    if (type === 'Crossword') {
+        const words = (simpleData.words||[]).map(w=>({answer:(w.answer||w.word||'').toUpperCase(),clue:w.clue||'',orientation:'across',fixWord:false}));
+        return {taskDescription:simpleData.taskDescription||'<p>Löse das Kreuzworträtsel.</p>',words,overallFeedback:[{from:0,to:100}],behaviour:{enableInstantFeedback:false,scoreWords:true,applyPenalties:false,enableRetry:true,enableSolutionsButton:true}};
+    }
+
+    if (type === 'Timeline') {
+        const events = (simpleData.events||[]).map(e=>({startDate:String(e.startDate||e.year||''),endDate:String(e.endDate||e.startDate||e.year||''),headline:e.headline||'',text:"<p>"+(e.text||'')+"</p>"}));
+        const eras = (simpleData.eras||[]).map(r=>({startDate:String(r.startDate||r.startYear||''),endDate:String(r.endDate||r.endYear||''),text:{headline:r.label||r.headline||''}}));
+        return {timeline:{headline:simpleData.headline||simpleData.title||'',text:"<p>"+(simpleData.intro||'')+"</p>",defaultZoomLevel:'0',language:'de',era:eras.length>0?eras:[{text:''}],date:events}};
+    }
+
+    if (type === 'Guess the Answer') {
+        return {
+            taskDescription: "<p>" + (simpleData.taskDescription || "").replace(/\n/g, "</p>\n<p>") + "</p>",
+            solutionText: simpleData.solutionText || "",
+            solutionLabel: simpleData.solutionLabel || "Lösung",
+            media: { type: { params: {}, library: "H5P.Image 1.1", subContentId: uuidv4(), metadata: { contentType: "Image", license: "U", title: "Untitled Image" } }, disableImageZooming: false }
+        };
+    }
+
+    return simpleData;
+}
+
+document.getElementById('packBtn').addEventListener('click', async () => {
+    const status = document.getElementById('packStatus');
+    status.style.display = 'block'; status.className = 'status'; status.textContent = "Verarbeite...";
+    try {
+        const type = document.querySelector('input[name="type"]:checked').value;
+        const tplBuf = await dbGet(STORE_NAME, type);
+        if (!tplBuf) throw new Error('Kein Template für "' + type + '" im Cache.');
+        const data = JSON.parse(sanitizeJSON(document.getElementById('jsonIn').value));
+        const oldZip = await new JSZip().loadAsync(tplBuf);
+        const newZip = new JSZip();
+        let h5pMeta = {};
+        if (oldZip.file("h5p.json")) {
+            h5pMeta = JSON.parse(await oldZip.file("h5p.json").async("string"));
+            h5pMeta.title = document.getElementById('fname').value || "H5P-Export";
+        }
+        const libPatches = {
+            'Page':{'mainLibrary':'H5P.Column','lib':{machineName:'H5P.Column',majorVersion:'1',minorVersion:'18'}},
+            'Accordion':{'mainLibrary':'H5P.Accordion','lib':{machineName:'H5P.Accordion',majorVersion:'1',minorVersion:'0'}},
+            'Crossword':{'mainLibrary':'H5P.Crossword','lib':{machineName:'H5P.Crossword',majorVersion:'0',minorVersion:'5'}},
+            'Timeline':{'mainLibrary':'H5P.Timeline','lib':{machineName:'H5P.Timeline',majorVersion:'1',minorVersion:'1'}},
+            'Complex Fill in the Blanks':{'mainLibrary':'H5P.AdvancedBlanks','lib':{machineName:'H5P.AdvancedBlanks',majorVersion:'1',minorVersion:'2'}},
+        };
+        if (libPatches[type]) {
+            h5pMeta.mainLibrary = libPatches[type].mainLibrary;
+            const lib = libPatches[type].lib;
+            if (!Array.isArray(h5pMeta.preloadedDependencies)) h5pMeta.preloadedDependencies = [lib];
+            else { const idx = h5pMeta.preloadedDependencies.findIndex(d=>d.machineName===lib.machineName); if(idx===-1) h5pMeta.preloadedDependencies.push(lib); else h5pMeta.preloadedDependencies[idx]=lib; }
+        }
+        oldZip.forEach((path, file) => { if(!file.dir && path!=='h5p.json' && !path.startsWith('content/')) newZip.file(path, file.async('uint8array')); });
+        const ytUrl = document.getElementById('youtube-url').value;
+        const finalData = mapToH5PStructure(data, type, h5pMeta.preloadedDependencies, ytUrl);
+        newZip.file("h5p.json", JSON.stringify(h5pMeta));
+        newZip.file("content/content.json", JSON.stringify(finalData));
+        Object.keys(newZip.files).forEach(key => { if(key.endsWith('/')||newZip.files[key].dir) delete newZip.files[key]; });
+        const blob = await newZip.generateAsync({type:"blob"});
+        saveAs(blob, (h5pMeta.title.replace(/[^a-z0-9]/gi,'-')||'h5p-export')+'.h5p');
+        status.textContent = "✅ Erfolg! Datei wurde erstellt."; status.className = 'status success';
+    } catch(e) { status.textContent = "Fehler: " + e.message; status.className = 'status error'; }
+});
+
+// HELP MODAL
+const helpModal = document.getElementById("helpModal");
+document.getElementById("helpBtn").onclick = () => helpModal.style.display = "block";
+document.getElementById("closeModal").onclick = () => helpModal.style.display = "none";
+window.onclick = (event) => { if(event.target==helpModal) helpModal.style.display = "none"; };
+
+// INIT
+navigateTo(1);
+validateStep1();
+updateUI();
+initTemplateManager().catch(console.error);
+
+});
+</script>
+
+<footer>
+  <p>&copy; 2026 Wolfgang Schneider</p>
+  <p style="font-size:0.8rem; color:#94a3b8;">
+    Icons by <a href="https://fontawesome.com" class="link" target="_blank">Font Awesome</a> 
+    &ndash; <a href="https://creativecommons.org/licenses/by/4.0/" class="link" target="_blank">CC BY 4.0</a>
+  </p>
+</footer>
+
+</body>
+</html>
+
+
+
+
+
