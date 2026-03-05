@@ -405,28 +405,40 @@
                                     <input type="checkbox" id="page-has-summary">
                                     <label for="page-has-summary">Summary</label>
                                 </div>
+                                <div class="page-block-item" data-block="scs" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-scs">
+                                    <label for="page-has-scs">Single Choice Set</label>
+                                </div>
                             </div>
                             <div id="page-structure-preview"></div>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-top:10px; align-items:start;">
-                                <div id="page-intro-opts" style="display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Einleitungstext:</span>
-                                    <select id="page-intro-length" style="flex:1; margin:0; padding:4px 6px; font-size:0.85rem;">
-                                        <option value="short">Kurz (2&#8211;3 S&#228;tze)</option>
-                                        <option value="medium" selected>Mittel (1 Absatz)</option>
-                                        <option value="long">Ausf&#252;hrlich (2&#8211;3 Abs&#228;tze)</option>
-                                    </select>
+                                <div id="page-intro-opts" style="display:flex; flex-direction:column; gap:4px;">
+                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Einleitungstext</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">L&#228;nge:</span>
+                                        <select id="page-intro-length" style="flex:1; margin:0; padding:4px 6px; font-size:0.85rem;">
+                                            <option value="short">Kurz (2&#8211;3 S&#228;tze)</option>
+                                            <option value="medium" selected>Mittel (1 Absatz)</option>
+                                            <option value="long">Ausf&#252;hrlich (2&#8211;3 Abs&#228;tze)</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div id="page-reading-opts" style="display:none; align-items:center; gap:8px;">
-                                    <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Lesetext:</span>
-                                    <select id="page-reading-length" style="flex:1; margin:0; padding:4px 6px; font-size:0.85rem;">
-                                        <option value="medium">Mittel (100&#8211;150 W.)</option>
-                                        <option value="long" selected>Lang (200&#8211;300 W.)</option>
-                                        <option value="verylong">Sehr lang (350&#8211;500 W.)</option>
-                                    </select>
+                                <div id="page-reading-opts" style="display:none; flex-direction:column; gap:4px;">
+                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Lesetext</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">L&#228;nge:</span>
+                                        <select id="page-reading-length" style="flex:1; margin:0; padding:4px 6px; font-size:0.85rem;">
+                                            <option value="medium">Mittel (100&#8211;150 W.)</option>
+                                            <option value="long" selected>Lang (200&#8211;300 W.)</option>
+                                            <option value="verylong">Sehr lang (350&#8211;500 W.)</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div id="page-mc-opts" style="display:flex; flex-direction:column; gap:4px;">
+                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Multiple Choice</span>
                                     <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">MC-Fragen:</span>
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Fragen:</span>
                                         <input type="number" id="page-mc-count" value="3" min="1" max="10" style="width:55px; margin:0;">
                                     </div>
                                     <div style="display:flex; align-items:center; gap:8px;">
@@ -435,11 +447,15 @@
                                         <span id="page-mc-answers-val" style="font-size:0.85rem; font-weight:600; min-width:12px;">4</span>
                                     </div>
                                 </div>
-                                <div id="page-tf-opts" style="display:none; align-items:center; gap:8px;">
-                                    <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl T/F-Fragen:</span>
-                                    <input type="number" id="page-tf-count" value="2" min="1" max="8" style="width:55px; margin:0;">
+                                <div id="page-tf-opts" style="display:none; flex-direction:column; gap:4px;">
+                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">True/False</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Fragen:</span>
+                                        <input type="number" id="page-tf-count" value="2" min="1" max="8" style="width:55px; margin:0;">
+                                    </div>
                                 </div>
                                 <div id="page-blanks-opts" style="display:none; flex-direction:column; gap:4px;">
+                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">L&uuml;ckentext</span>
                                     <div style="display:flex; align-items:center; gap:8px;">
                                         <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl W&ouml;rter:</span>
                                         <input type="number" id="page-blanks-words" value="80" min="30" max="200" style="width:65px; margin:0;">
@@ -449,9 +465,23 @@
                                         <input type="number" id="page-blanks-gaps" value="5" min="2" max="15" style="width:55px; margin:0;">
                                     </div>
                                 </div>
-                                <div id="page-summary-opts" style="display:none; align-items:center; gap:8px;">
-                                    <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Summary-Gruppen:</span>
-                                    <input type="number" id="page-summary-count" value="3" min="1" max="8" style="width:55px; margin:0;">
+                                <div id="page-summary-opts" style="display:none; flex-direction:column; gap:4px;">
+                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Summary</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Gruppen:</span>
+                                        <input type="number" id="page-summary-count" value="3" min="1" max="8" style="width:55px; margin:0;">
+                                    </div>
+                                </div>
+                                <div id="page-scs-opts" style="display:none; flex-direction:column; gap:4px;">
+                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Single Choice Set</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Fragen:</span>
+                                        <input type="number" id="page-scs-count" value="3" min="1" max="10" style="width:55px; margin:0;">
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Antworten/Frage:</span>
+                                        <input type="number" id="page-scs-answers" value="3" min="2" max="5" style="width:55px; margin:0;">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -898,8 +928,8 @@ document.getElementById('enable-feedback').addEventListener('change', function()
 function updatePagePreview() {
     var preview = document.getElementById('page-structure-preview');
     if (!preview) return;
-    var colors = {intro:'#6366f1',reading:'#0ea5e9',mc:'#10b981',tf:'#f59e0b',blanks:'#ef4444',summary:'#8b5cf6'};
-    var labels = {intro:'Einleitungstext',reading:'Lesetext',mc:'Multiple Choice',tf:'True/False',blanks:'L\u00fcckentext',summary:'Summary'};
+    var colors = {intro:'#6366f1',reading:'#0ea5e9',mc:'#10b981',tf:'#f59e0b',blanks:'#ef4444',summary:'#8b5cf6',scs:'#0891b2'};
+    var labels = {intro:'Einleitungstext',reading:'Lesetext',mc:'Multiple Choice',tf:'True/False',blanks:'L\u00fcckentext',summary:'Summary',scs:'Single Choice Set'};
     var chips = [];
     document.querySelectorAll('#page-block-list .page-block-item').forEach(function(item) {
         var id = item.dataset.block;
@@ -909,7 +939,7 @@ function updatePagePreview() {
     preview.innerHTML = chips.length ? chips.join('') : '<span style="color:#94a3b8;font-size:0.8rem;">Keine Elemente aktiviert</span>';
 }
 
-['intro', 'reading', 'mc', 'tf', 'blanks', 'summary'].forEach(function(id) {
+['intro', 'reading', 'mc', 'tf', 'blanks', 'summary', 'scs'].forEach(function(id) {
     var cb = document.getElementById('page-has-' + id);
     if (cb) cb.addEventListener('change', function() {
         var opts = document.getElementById('page-' + id + '-opts');
@@ -1115,12 +1145,15 @@ function generatePrompt() {
         const hasTF=document.getElementById('page-has-tf').checked;
         const hasBlanks=document.getElementById('page-has-blanks').checked;
         const hasSummary=document.getElementById('page-has-summary').checked;
+        const hasSCS=document.getElementById('page-has-scs').checked;
         const mcCount=document.getElementById('page-mc-count').value||3;
         const mcAnswers=document.getElementById('page-mc-answers').value||4;
         const tfCount=document.getElementById('page-tf-count').value||2;
         const blanksWords=document.getElementById('page-blanks-words').value||80;
         const blanksGaps=document.getElementById('page-blanks-gaps').value||5;
         const summaryCount=document.getElementById('page-summary-count').value||3;
+        const scsCount=document.getElementById('page-scs-count').value||3;
+        const scsAnswers=document.getElementById('page-scs-answers').value||3;
         const introLength=document.getElementById('page-intro-length').value||'medium';
         const readingLength=document.getElementById('page-reading-length').value||'long';
         const introMap={short:'2\u20133 S\u00e4tze (ca. 30\u201350 W\u00f6rter)',medium:'1 Absatz (ca. 60\u201390 W\u00f6rter)',long:'2\u20133 Abs\u00e4tze (ca. 120\u2013180 W\u00f6rter)'};
@@ -1140,7 +1173,8 @@ function generatePrompt() {
             mc: hasMC ? '- {"type":"mc","question":"...","answers":[{"text":"...","correct":true},{"text":"...","feedback":"Begr\u00fcndung.","correct":false},...]} \u2013 exakt ' + mcCount + ' Frage(n), exakt ' + mcAnswers + ' Antworten pro Frage\n' : null,
             tf: hasTF ? '- {"type":"tf","question":"...","correct":"true"|"false"} \u2013 exakt ' + tfCount + ' Frage(n), correct IMMER als String! Mische "true"- und "false"-Antworten ausgewogen.\n' : null,
             blanks: hasBlanks ? '- {"type":"blanks","text":"Zusammenh\u00e4ngender Text mit *L\u00f6sung*.","taskDescription":"..."} \u2013 ein zusammenh\u00e4ngender Flie\u00dftext mit ca. ' + blanksWords + ' W\u00f6rtern und exakt ' + blanksGaps + ' Schl\u00fcsselbegriffen als L\u00fccke (*Sternchen*). Kein einzelner Satz, sondern ein zusammenh\u00e4ngender Absatz!\n' : null,
-            summary: hasSummary ? '- {"type":"summary","statements":[["Richtige Kernaussage","Falschaussage A","Falschaussage B"],...]} \u2013 exakt ' + summaryCount + ' Gruppen. H5P-PFLICHT: Erste Aussage = korrekte Kernaussage. Falschaussagen m\u00fcssen inhaltlich plausibel, aber eindeutig falsch sein.\n' : null
+            summary: hasSummary ? '- {"type":"summary","statements":[["Richtige Kernaussage","Falschaussage A","Falschaussage B"],...]} \u2013 exakt ' + summaryCount + ' Gruppen. H5P-PFLICHT: Erste Aussage = korrekte Kernaussage. Falschaussagen m\u00fcssen inhaltlich plausibel, aber eindeutig falsch sein.\n' : null,
+            scs: hasSCS ? '- {"type":"scs","questions":[{"question":"...","answers":["Richtige Antwort","Falsch 1","Falsch 2"]},...]} \u2013 exakt ' + scsCount + ' Frage(n), exakt ' + scsAnswers + ' Antworten pro Frage als String-Array (erste = richtig).\n' : null
         };
         p += '\n**Bl\u00f6cke (EXAKT in dieser Reihenfolge):**\n';
         blockOrder.forEach(function(id) { if (blockDescs[id]) p += blockDescs[id]; });
@@ -1643,6 +1677,13 @@ function mapToH5PStructure(simpleData, type, dependencies, youtubeUrl) {
             if (b.type === 'summary') {
                 const summaries = (b.statements||[]).map(arr=>({subContentId:makeSubId(i+Math.random()),summary:arr.map(s=>"<div>"+s+"</div>"),tip:''}));
                 return {useSeparator:'auto',content:{params:{summaries,intro:'Wähle die richtigen Aussagen:'},library:'H5P.Summary 1.10',subContentId:makeSubId(i),metadata:{contentType:'Summary',license:'U',title:'Summary'}}};
+            }
+            if (b.type === 'scs') {
+                const choices = (b.questions||[]).map((q,qi)=>{
+                    const ansList = (q.answers||[]).map(a=>cleanTextForSCS(typeof a==='string'?a:(a.text||'')));
+                    return {subContentId:makeSubId(qi),question:'<p>'+(q.question||q.text||'')+'</p>',answers:ansList};
+                });
+                return {useSeparator:'auto',content:{params:{choices,behaviour:{autoContinue:true,timeoutCorrect:2000,timeoutWrong:3000,soundEffectsEnabled:true,enableRetry:true,enableSolutionsButton:true}},library:'H5P.SingleChoiceSet 1.11',subContentId:makeSubId(i),metadata:{contentType:'Single Choice Set',license:'U',title:'Single Choice Set'}}};
             }
             return null;
         }).filter(Boolean);
