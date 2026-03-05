@@ -1292,17 +1292,34 @@ function generatePrompt() {
     }
     if (['Multiple Choice','Question Set','Single Choice Set'].includes(type)) {
         const distOps = {
-            semantic:'Inhaltlich verwandte Begriffe (z.B. Lyon, Marseille \u2013 nicht "Banane").',
-            visual:'Klingen/sehen \u00e4hnlich aus (z.B. "Diffusion"/"Defusion").',
-            misconception:'Typische Denkfehler dieser Klassenstufe.',
-            mixed:'Kombiniere: mind. 1 verwandt, mind. 1 typischer Denkfehler.'
+            semantic:'Inhaltlich verwandte Begriffe, die in derselben thematischen Kategorie liegen (z.B. Lyon, Marseille \u2013 niemals "Banane" oder Themenfremdes).',
+            visual:'Klingen oder sehen \u00e4hnlich aus (z.B. "Diffusion"/"Defusion") \u2013 trotzdem im Themenbereich bleiben.',
+            misconception:'Aus typischen Fehlvorstellungen dieser Klassenstufe ableiten \u2013 Zweischrittiger Ansatz: 1. Fehlvorstellungen benennen, 2. Distraktoren daraus formulieren.',
+            mixed:'Kombiniere: mind. 1 inhaltlich verwandt, mind. 1 typischer Denkfehler \u2013 alle Optionen im selben Themenbereich.'
         };
-        const bloomNote = (bloomLevel === 'analyze') ? ' ANALYSE-NIVEAU: ALLE Distraktoren m\u00fcssen plausibel wirken!' : '';
+        const bloomNote = (bloomLevel === 'analyze') ? ' ANALYSE-NIVEAU: ALLE Distraktoren m\u00fcssen plausibel wirken \u2013 kein offensichtlich Falsches!' : '';
         p += '* **Distraktoren:** ' + (distOps[distType] || '') + bloomNote + '\n';
+        p += '\n**DISTRAKTOREN-REGELN (PFLICHT f\u00fcr alle falschen Antworten):**\n';
+        p += '- Falsche Antworten m\u00fcssen fachlich plausibel sein\n';
+        p += '- Sie entstehen aus typischen Fehlvorstellungen von Sch\u00fclern der ' + schulart + ', Klasse ' + klasse + '\n';
+        p += '- Alle Antwortoptionen liegen in derselben thematischen Kategorie\n';
+        p += '- Vermeide offensichtlich unsinnige oder themenfremde Antworten\n';
+        p += '- Falsche Antworten d\u00fcrfen teilweise richtig erscheinen, m\u00fcssen aber im Kontext eindeutig falsch sein\n';
+        p += '- Die richtige Antwort soll nur erkennbar sein, wenn der Inhalt wirklich verstanden wurde\n';
+        if (distType === 'misconception' || distType === 'mixed') {
+            p += '\n**ZWEISCHRITTIGER ANSATZ (intern vor JSON-Ausgabe):**\n';
+            p += 'Schritt 1: Nenne zun\u00e4chst typische Fehlvorstellungen von Sch\u00fclern zum gew\u00e4hlten Thema.\n';
+            p += 'Schritt 2: Leite daraus die konkreten Distraktoren ab und integriere sie in die Fragen.\n';
+        }
     }
     if (type === 'Drag the Words' && parseInt(dist) > 0) {
-        const distOps = {semantic:'Inhaltlich verwandt.',visual:'Klingen/sehen \u00e4hnlich.',misconception:'Typische Verwechslungen.',mixed:'Verschiedene Fehlertypen.'};
-        p += '* **Distraktoren:** ' + (distOps[distType] || '') + '\n';
+        const distOps = {
+            semantic:'Inhaltlich verwandt \u2013 im selben Wortfeld bleiben.',
+            visual:'Klingen oder sehen \u00e4hnlich aus.',
+            misconception:'Typische Verwechslungen dieser Klassenstufe.',
+            mixed:'Verschiedene Fehlertypen \u2013 alle im Themenbereich.'
+        };
+        p += '* **Distraktoren:** ' + (distOps[distType] || '') + ' Vermeide offensichtlich themenfremde W\u00f6rter.\n';
     }
 
     if (['Fill in the Blanks','Drag the Words','Mark the Words'].includes(type)) {
@@ -1328,7 +1345,14 @@ function generatePrompt() {
     if (feedbackEnabled) {
         const fbStyleMap = {corrective:'sachlich ("Das ist falsch. Richtig ist ...")',scaffolding:'hinweisend ("Denke nochmal nach: ...")',motivational:'motivierend ("Fast richtig! ...")'};
         const fbHint = fbStyleMap[fbStyle] || fbStyle;
-        if (type === 'Complex Fill in the Blanks') p += '* **Feedback:** incorrectAnswers[].feedback ' + fbHint + '. Kein leerer String!\n';
+        if (type === 'Complex Fill in the Blanks') {
+            p += '* **Feedback:** incorrectAnswers[].feedback ' + fbHint + '. Kein leerer String!\n';
+            p += '\n**DISTRAKTOREN-REGELN f\u00fcr incorrectAnswers (PFLICHT):**\n';
+            p += '- Falsche Alternativen m\u00fcssen in derselben Wortklasse / demselben Themenfeld liegen wie die L\u00f6sung\n';
+            p += '- Sie sollen auf typischen Fehlvorstellungen oder Verwechslungen beruhen\n';
+            p += '- Offensichtlich falsche oder themenfremde Alternativen sind verboten\n';
+            p += '- Die richtige Antwort ist nur erkennbar, wenn der Inhalt wirklich verstanden wurde\n';
+        }
         else if (type === 'Multiple Choice') p += '* **Feedback:** tipsAndFeedback.chosenFeedback ' + fbHint + '. Kein leerer String!\n';
         else if (type === 'Question Set') p += '* **Feedback (mc):** "feedback" je falscher Antwort ' + fbHint + '. Kein leerer String!\n';
         else p += '* **Feedback:** Automatisch durch H5P \u2013 NICHT ins JSON kodieren.\n';
@@ -1416,6 +1440,7 @@ function generatePrompt() {
         p += '\u274c FALSCH: "answers":[{"text":"Richtig","correct":true}] \u2013 SCS braucht Strings, keine Objekte!\n';
     } else if (type === 'True False') {
         p += '* **DIDAKTIK:** Formuliere Aussagen, die auf typischen Missverst\u00e4ndnissen oder Verallgemeinerungen basieren und eine genaue Analyse erfordern. Vermeide offensichtlich wahre oder falsche Trivialaussagen.\n';
+        p += '* **PLAUSIBILIT\u00c4T:** Falsche Aussagen m\u00fcssen so klingen, als k\u00f6nnten sie wahr sein \u2013 nur wer den Inhalt wirklich verstanden hat, erkennt den Fehler. Vermeide Aussagen, bei denen der Fehler sofort offensichtlich ist.\n';
         p += '* **FEEDBACK PFLICHT:** Jede Frage ben\u00f6tigt ein \`feedback\`-Feld mit einer kurzen Begr\u00fcndung, die den Denkfehler aufkl\u00e4rt (1\u20132 S\u00e4tze).\n';
         p += '\n**Pflicht 1:** "correct" MUSS String sein!\n';
         p += '\u2705 RICHTIG: "correct":"true" oder "correct":"false" \u2013 MIT Anf\u00fchrungszeichen\n';
@@ -1445,12 +1470,14 @@ function generatePrompt() {
         p += '\u2705 BEISPIEL:\n```json\n{"taskDescription":"Welches Organ pumpt Blut?","solutionLabel":"L\u00f6sung","solutionText":"Das Herz."}\n```\n';
     }
 
-    const distraktTypes = ['Multiple Choice','Question Set','Single Choice Set','Drag the Words'];
+    const distraktTypes = ['Multiple Choice','Question Set','Single Choice Set','Drag the Words','Complex Fill in the Blanks','True False'];
     if (distraktTypes.includes(type)) {
         p += '\n### 4. SELBSTPR\u00dcFUNG VOR DER AUSGABE\n';
-        p += 'Pr\u00fcfe **jeden Distraktor** gegen diese Checkliste. Ersetze, was nicht besteht:\n\n';
+        p += 'Pr\u00fcfe **jede falsche Antwort / jeden Distraktor** gegen diese Checkliste. Ersetze, was nicht besteht:\n\n';
         p += '- [ ] W\u00fcrde ein Sch\u00fcler (Klasse ' + klasse + ', ' + schulart + ') diese Antwort ernsthaft in Betracht ziehen?\n';
-        p += '- [ ] Ist der Distraktor inhaltlich plausibel \u2013 nicht offensichtlich absurd oder themenfern?\n';
+        p += '- [ ] Ist der Distraktor fachlich plausibel \u2013 nicht offensichtlich absurd oder themenfern?\n';
+        p += '- [ ] Liegen alle Antwortoptionen in derselben thematischen Kategorie?\n';
+        p += '- [ ] W\u00fcrde eine Lehrkraft diese Antwort als \u201eQuatsch-Antwort\u201c bezeichnen? \u2192 Dann ersetzen!\n';
         p += '- [ ] Unterscheidet er sich klar genug von der richtigen Antwort?\n';
         p += '- [ ] Ist kein Distraktor versehentlich auch richtig (Doppell\u00f6sung)?\n\n';
         p += '\u274c Distraktor besteht Pr\u00fcfung nicht \u2192 ersetzen, dann erst JSON ausgeben.\n\n';
