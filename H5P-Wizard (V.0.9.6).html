@@ -625,6 +625,7 @@
             </div>
             <label style="margin-top:20px;">KI-JSON einf&#252;gen</label>
             <textarea id="jsonIn" rows="12" placeholder='{ ... }' style="font-family:monospace; font-size:12px;"></textarea>
+            <div id="jsonValidationStatus" style="display:none; margin-top:8px; padding:8px 12px; border-radius:6px; font-size:0.85rem; font-weight:600;"></div>
             <button id="packBtn" disabled style="margin-top:25px;"><i class="fas fa-file-archive"></i> H5P Datei erstellen</button>
             <div id="packStatus" class="status"></div>
             <div class="nav-buttons">
@@ -792,9 +793,35 @@ function typeToId(val) {
 function updatePackButton() {
     const type = document.querySelector('input[name="type"]:checked').value;
     const hasTpl = tplStatus[type] === "cached";
-    const hasJson = document.getElementById("jsonIn").value.trim().length > 0;
+    const rawJson = document.getElementById("jsonIn").value.trim();
+    const hasJson = rawJson.length > 0;
     const packBtn = document.getElementById("packBtn");
-    packBtn.disabled = !(hasTpl && hasJson);
+    const valEl = document.getElementById("jsonValidationStatus");
+
+    let isValidJson = false;
+    if (hasJson) {
+        try {
+            JSON.parse(sanitizeJSON(rawJson));
+            isValidJson = true;
+            valEl.style.display = "block";
+            valEl.style.background = "#f0fdf4";
+            valEl.style.border = "1px solid #86efac";
+            valEl.style.color = "#15803d";
+            valEl.innerHTML = '<i class="fas fa-check-circle"></i> G&#252;ltiges JSON';
+        } catch (e) {
+            isValidJson = false;
+            const msg = e.message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            valEl.style.display = "block";
+            valEl.style.background = "#fef2f2";
+            valEl.style.border = "1px solid #fca5a5";
+            valEl.style.color = "#b91c1c";
+            valEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ung&#252;ltiges JSON &ndash; ' + msg;
+        }
+    } else {
+        valEl.style.display = "none";
+    }
+
+    packBtn.disabled = !(hasTpl && hasJson && isValidJson);
     const infoEl = document.getElementById("activeTemplateInfo");
     if (hasTpl) {
         infoEl.style.background = "#f0fdf4"; infoEl.style.borderColor = "#86efac"; infoEl.style.color = "#15803d";
