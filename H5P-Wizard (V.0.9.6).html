@@ -309,6 +309,105 @@
                 <input type="text" id="youtube-url" placeholder="...">
             </div>
             <div class="settings-box">
+                <div id="opts-page" style="display:none;">
+                    <div class="grid-2" style="align-items:start;">
+                        <div>
+                            <label>Bausteine der Seite</label>
+                            <div class="field-desc">Ziehe die Bl&ouml;cke in die gew&uuml;nschte Reihenfolge. Aktiviere sie per Checkbox.</div>
+                            <div id="page-block-list" style="display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+                                <div class="page-block-item" data-block="intro" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-intro" checked>
+                                    <label for="page-has-intro">Einleitungstext</label>
+                                </div>
+                                <div class="page-block-item" data-block="reading" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-reading">
+                                    <label for="page-has-reading">Lesetext (Leseverstehen / Informationstext)</label>
+                                </div>
+                                <div class="page-block-item" data-block="mc" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-mc" checked>
+                                    <label for="page-has-mc">Multiple Choice</label>
+                                </div>
+                                <div class="page-block-item" data-block="tf" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-tf">
+                                    <label for="page-has-tf">True/False</label>
+                                </div>
+                                <div class="page-block-item" data-block="blanks" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-blanks">
+                                    <label for="page-has-blanks">L&uuml;ckentext (zusammenh&auml;ngend)</label>
+                                </div>
+                                <div class="page-block-item" data-block="summary" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-summary">
+                                    <label for="page-has-summary">Summary</label>
+                                </div>
+                                <div class="page-block-item" data-block="scs" draggable="true">
+                                    <span class="drag-handle">&#8801;</span>
+                                    <input type="checkbox" id="page-has-scs">
+                                    <label for="page-has-scs">Single Choice Set</label>
+                                </div>
+                            </div>
+                            <div id="page-structure-preview"></div>
+                        </div>
+                        <div>
+                            <label style="margin-top:0;">Einstellungen der aktiven Bausteine</label>
+                            <div id="page-intro-opts">
+                                <label for="page-intro-length">Einleitungstext &ndash; L&auml;nge</label>
+                                <select id="page-intro-length">
+                                    <option value="short">Kurz (2&#8211;3 S&#228;tze)</option>
+                                    <option value="medium" selected>Mittel (1 Absatz)</option>
+                                    <option value="long">Ausf&#252;hrlich (2&#8211;3 Abs&#228;tze)</option>
+                                </select>
+                            </div>
+                            <div id="page-reading-opts" style="display:none;">
+                                <label for="page-reading-length">Lesetext &ndash; L&auml;nge</label>
+                                <select id="page-reading-length">
+                                    <option value="medium">Mittel (100&#8211;150 W.)</option>
+                                    <option value="long" selected>Lang (200&#8211;300 W.)</option>
+                                    <option value="verylong">Sehr lang (350&#8211;500 W.)</option>
+                                </select>
+                            </div>
+                            <div id="page-mc-opts">
+                                <label style="color:var(--primary);">Multiple Choice</label>
+                                <label for="page-mc-count">Anzahl Fragen</label>
+                                <input type="number" id="page-mc-count" value="3" min="1" max="10">
+                                <label for="page-mc-answers">Antworten / Frage</label>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <input type="range" id="page-mc-answers" min="3" max="5" value="4" style="flex:1; cursor:pointer;">
+                                    <span id="page-mc-answers-val" style="font-weight:600; min-width:14px;">4</span>
+                                </div>
+                            </div>
+                            <div id="page-tf-opts" style="display:none;">
+                                <label style="color:var(--primary);">True / False</label>
+                                <label for="page-tf-count">Anzahl Fragen</label>
+                                <input type="number" id="page-tf-count" value="2" min="1" max="8">
+                            </div>
+                            <div id="page-blanks-opts" style="display:none;">
+                                <label style="color:var(--primary);">L&uuml;ckentext</label>
+                                <label for="page-blanks-words">Anzahl W&ouml;rter</label>
+                                <input type="number" id="page-blanks-words" value="80" min="30" max="200">
+                                <label for="page-blanks-gaps">Anzahl L&uuml;cken</label>
+                                <input type="number" id="page-blanks-gaps" value="5" min="2" max="15">
+                            </div>
+                            <div id="page-summary-opts" style="display:none;">
+                                <label style="color:var(--primary);">Summary</label>
+                                <label for="page-summary-count">Anzahl Gruppen</label>
+                                <input type="number" id="page-summary-count" value="3" min="1" max="8">
+                            </div>
+                            <div id="page-scs-opts" style="display:none;">
+                                <label style="color:var(--primary);">Single Choice Set</label>
+                                <label for="page-scs-count">Anzahl Fragen</label>
+                                <input type="number" id="page-scs-count" value="3" min="1" max="10">
+                                <label for="page-scs-answers">Antworten / Frage</label>
+                                <input type="number" id="page-scs-answers" value="3" min="2" max="5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="grid-2">
                     <div>
                         <div id="opts-text" style="display:none;">
@@ -370,120 +469,6 @@
                         <div id="opts-accordion" style="display:none;">
                             <label>Anzahl Abschnitte</label><input type="number" id="accordion-count" value="5" min="2" max="15">
                             <div class="field-desc" style="margin-top:6px;">Jeder Abschnitt hat einen Titel und einen Erkl&#228;rungstext.</div>
-                        </div>
-                        <div id="opts-page" style="display:none;">
-                            <label>Bausteine der Seite</label>
-                            <div class="field-desc">Ziehe die Bl&ouml;cke in die gew&uuml;nschte Reihenfolge. Aktiviere sie per Checkbox.</div>
-                            <div id="page-block-list" style="display:flex; flex-direction:column; gap:4px; margin-top:8px;">
-                                <div class="page-block-item" data-block="intro" draggable="true">
-                                    <span class="drag-handle">&#8801;</span>
-                                    <input type="checkbox" id="page-has-intro" checked>
-                                    <label for="page-has-intro">Einleitungstext</label>
-                                </div>
-                                <div class="page-block-item" data-block="reading" draggable="true">
-                                    <span class="drag-handle">&#8801;</span>
-                                    <input type="checkbox" id="page-has-reading">
-                                    <label for="page-has-reading">Lesetext (Leseverstehen / Informationstext)</label>
-                                </div>
-                                <div class="page-block-item" data-block="mc" draggable="true">
-                                    <span class="drag-handle">&#8801;</span>
-                                    <input type="checkbox" id="page-has-mc" checked>
-                                    <label for="page-has-mc">Multiple Choice</label>
-                                </div>
-                                <div class="page-block-item" data-block="tf" draggable="true">
-                                    <span class="drag-handle">&#8801;</span>
-                                    <input type="checkbox" id="page-has-tf">
-                                    <label for="page-has-tf">True/False</label>
-                                </div>
-                                <div class="page-block-item" data-block="blanks" draggable="true">
-                                    <span class="drag-handle">&#8801;</span>
-                                    <input type="checkbox" id="page-has-blanks">
-                                    <label for="page-has-blanks">L&uuml;ckentext (zusammenh&auml;ngend)</label>
-                                </div>
-                                <div class="page-block-item" data-block="summary" draggable="true">
-                                    <span class="drag-handle">&#8801;</span>
-                                    <input type="checkbox" id="page-has-summary">
-                                    <label for="page-has-summary">Summary</label>
-                                </div>
-                                <div class="page-block-item" data-block="scs" draggable="true">
-                                    <span class="drag-handle">&#8801;</span>
-                                    <input type="checkbox" id="page-has-scs">
-                                    <label for="page-has-scs">Single Choice Set</label>
-                                </div>
-                            </div>
-                            <div id="page-structure-preview"></div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-top:10px; align-items:start;">
-                                <div id="page-intro-opts" style="display:flex; flex-direction:column; gap:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Einleitungstext</span>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">L&#228;nge:</span>
-                                        <select id="page-intro-length" style="flex:1; margin:0; padding:4px 6px; font-size:0.85rem;">
-                                            <option value="short">Kurz (2&#8211;3 S&#228;tze)</option>
-                                            <option value="medium" selected>Mittel (1 Absatz)</option>
-                                            <option value="long">Ausf&#252;hrlich (2&#8211;3 Abs&#228;tze)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div id="page-reading-opts" style="display:none; flex-direction:column; gap:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Lesetext</span>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">L&#228;nge:</span>
-                                        <select id="page-reading-length" style="flex:1; margin:0; padding:4px 6px; font-size:0.85rem;">
-                                            <option value="medium">Mittel (100&#8211;150 W.)</option>
-                                            <option value="long" selected>Lang (200&#8211;300 W.)</option>
-                                            <option value="verylong">Sehr lang (350&#8211;500 W.)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div id="page-mc-opts" style="display:flex; flex-direction:column; gap:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Multiple Choice</span>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Fragen:</span>
-                                        <input type="number" id="page-mc-count" value="3" min="1" max="10" style="width:55px; margin:0;">
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Antworten/Frage:</span>
-                                        <input type="range" id="page-mc-answers" min="3" max="5" value="4" style="width:75px; margin:0; cursor:pointer;">
-                                        <span id="page-mc-answers-val" style="font-size:0.85rem; font-weight:600; min-width:12px;">4</span>
-                                    </div>
-                                </div>
-                                <div id="page-tf-opts" style="display:none; flex-direction:column; gap:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">True/False</span>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Fragen:</span>
-                                        <input type="number" id="page-tf-count" value="2" min="1" max="8" style="width:55px; margin:0;">
-                                    </div>
-                                </div>
-                                <div id="page-blanks-opts" style="display:none; flex-direction:column; gap:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">L&uuml;ckentext</span>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl W&ouml;rter:</span>
-                                        <input type="number" id="page-blanks-words" value="80" min="30" max="200" style="width:65px; margin:0;">
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl L&uuml;cken:</span>
-                                        <input type="number" id="page-blanks-gaps" value="5" min="2" max="15" style="width:55px; margin:0;">
-                                    </div>
-                                </div>
-                                <div id="page-summary-opts" style="display:none; flex-direction:column; gap:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Summary</span>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Gruppen:</span>
-                                        <input type="number" id="page-summary-count" value="3" min="1" max="8" style="width:55px; margin:0;">
-                                    </div>
-                                </div>
-                                <div id="page-scs-opts" style="display:none; flex-direction:column; gap:4px;">
-                                    <span style="font-size:0.72rem; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.05em;">Single Choice Set</span>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Anzahl Fragen:</span>
-                                        <input type="number" id="page-scs-count" value="3" min="1" max="10" style="width:55px; margin:0;">
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:0.85rem; color:#374151; white-space:nowrap;">Antworten/Frage:</span>
-                                        <input type="number" id="page-scs-answers" value="3" min="2" max="5" style="width:55px; margin:0;">
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -943,7 +928,7 @@ function updatePagePreview() {
     var cb = document.getElementById('page-has-' + id);
     if (cb) cb.addEventListener('change', function() {
         var opts = document.getElementById('page-' + id + '-opts');
-        if (opts) opts.style.display = this.checked ? 'flex' : 'none';
+        if (opts) opts.style.display = this.checked ? 'block' : 'none';
         updatePagePreview();
     });
 });
