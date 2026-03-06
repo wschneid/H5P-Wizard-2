@@ -471,10 +471,21 @@
                                     <label><span><i class="fa-solid fa-images"></i> Eigene Bilder (optional)</span><i class="fa-solid fa-chevron-down" style="font-size:0.8rem;"></i></label>
                                 </div>
                                 <div id="card-img-section" style="display:none; margin-top:10px;">
-                                    <div class="field-desc">Lade Bilder f&#252;r einzelne Karten hoch. Karte 1 = erstes Kartenpaar, Karte 2 = zweites usw.</div>
-                                    <div id="card-image-list" style="display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:280px; overflow-y:auto;"></div>
-                                    <button type="button" class="btn-sm btn-secondary" style="margin-top:10px; width:auto;" onclick="document.getElementById('card-image-file').click()"><i class="fa-solid fa-plus"></i> Bild hinzuf&#252;gen</button>
-                                    <input type="file" id="card-image-file" accept="image/*" multiple style="display:none;">
+                                    <div class="checkbox-option" style="margin-bottom:8px;">
+                                        <input type="checkbox" id="card-img-all-toggle" onchange="toggleSameImageAll()">
+                                        <label for="card-img-all-toggle">Gleiches Bild f&#252;r alle Karten</label>
+                                    </div>
+                                    <div id="card-img-all-area" style="display:none;">
+                                        <div id="card-img-all-preview"><div style="color:#94a3b8;font-size:0.85rem;">Noch kein Bild ausgew&#228;hlt.</div></div>
+                                        <button type="button" class="btn-sm btn-secondary" style="margin-top:6px;width:auto;" onclick="document.getElementById('card-image-all-file').click()"><i class="fa-solid fa-image"></i> Bild ausw&#228;hlen</button>
+                                        <input type="file" id="card-image-all-file" accept="image/*" style="display:none;">
+                                    </div>
+                                    <div id="card-img-individual-area">
+                                        <div class="field-desc">Lade Bilder f&#252;r einzelne Karten hoch. Karte 1 = erstes Kartenpaar, Karte 2 = zweites usw.</div>
+                                        <div id="card-image-list" style="display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:280px; overflow-y:auto;"></div>
+                                        <button type="button" class="btn-sm btn-secondary" style="margin-top:10px; width:auto;" onclick="document.getElementById('card-image-file').click()"><i class="fa-solid fa-plus"></i> Bild hinzuf&#252;gen</button>
+                                        <input type="file" id="card-image-file" accept="image/*" multiple style="display:none;">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -675,6 +686,7 @@
 <script>
 // ===== CARD IMAGE HANDLING (global scope – required for inline onclick handlers) =====
 const cardImages = []; // [{ cardNum, file, dataUrl, width, height, ext, mime }]
+let cardImageAll = null; // { file, dataUrl, width, height, ext, mime } – same image for every card
 
 function toggleCardImageSection() {
     const sec = document.getElementById('card-img-section');
@@ -705,6 +717,18 @@ function renderCardImageList() {
 function removeCardImage(idx) {
     cardImages.splice(idx, 1);
     renderCardImageList();
+}
+
+function toggleSameImageAll() {
+    const checked = document.getElementById('card-img-all-toggle').checked;
+    document.getElementById('card-img-all-area').style.display = checked ? 'block' : 'none';
+    document.getElementById('card-img-individual-area').style.display = checked ? 'none' : 'block';
+    if (!checked) { cardImageAll = null; document.getElementById('card-img-all-preview').innerHTML = '<div style="color:#94a3b8;font-size:0.85rem;">Noch kein Bild ausgew\u00e4hlt.</div>'; }
+}
+
+function removeCardImageAll() {
+    cardImageAll = null;
+    document.getElementById('card-img-all-preview').innerHTML = '<div style="color:#94a3b8;font-size:0.85rem;">Noch kein Bild ausgew\u00e4hlt.</div>';
 }
 // ===== END CARD IMAGE HANDLING =====
 
@@ -1675,8 +1699,11 @@ function mapToH5PStructure(simpleData, type, dependencies, youtubeUrl) {
         return {
             dialogs: qArray.map((card, idx) => {
                 const entry = { text: cleanText(card.text||card.question||''), answer: cleanText(card.answer||card.solution||'') };
-                const imgData = cardImages.find(i => i.cardNum === idx + 1);
-                if (imgData) entry.image = { path: 'images/card-' + (idx+1) + '.' + imgData.ext, mime: imgData.mime, copyright: { license: 'U' }, width: imgData.width, height: imgData.height };
+                const imgData = cardImageAll || cardImages.find(i => i.cardNum === idx + 1);
+                if (imgData) {
+                    const imgPath = cardImageAll ? 'images/card-all.' + imgData.ext : 'images/card-' + (idx+1) + '.' + imgData.ext;
+                    entry.image = { path: imgPath, mime: imgData.mime, copyright: { license: 'U' }, width: imgData.width, height: imgData.height };
+                }
                 return entry;
             }),
             behaviour: { enableRetry }
@@ -1686,8 +1713,11 @@ function mapToH5PStructure(simpleData, type, dependencies, youtubeUrl) {
         return {
             cards: qArray.map((card, idx) => {
                 const entry = { text: cleanText(card.text||card.question||''), answer: cleanText(card.answer||card.solution||''), tip: '' };
-                const imgData = cardImages.find(i => i.cardNum === idx + 1);
-                if (imgData) entry.image = { path: 'images/card-' + (idx+1) + '.' + imgData.ext, mime: imgData.mime, copyright: { license: 'U' }, width: imgData.width, height: imgData.height };
+                const imgData = cardImageAll || cardImages.find(i => i.cardNum === idx + 1);
+                if (imgData) {
+                    const imgPath = cardImageAll ? 'images/card-all.' + imgData.ext : 'images/card-' + (idx+1) + '.' + imgData.ext;
+                    entry.image = { path: imgPath, mime: imgData.mime, copyright: { license: 'U' }, width: imgData.width, height: imgData.height };
+                }
                 return entry;
             }),
             behaviour: defaultBehaviour
@@ -1868,12 +1898,17 @@ document.getElementById('packBtn').addEventListener('click', async () => {
         const finalData = mapToH5PStructure(data, type, h5pMeta.preloadedDependencies, ytUrl);
         newZip.file("h5p.json", JSON.stringify(h5pMeta));
         newZip.file("content/content.json", JSON.stringify(finalData));
-        if (['Dialog Cards', 'Flashcards'].includes(type) && cardImages.length > 0) {
-            const qArr = Array.isArray(data) ? data : (data.cards || data.dialogs || data.questions || []);
-            for (const imgData of cardImages) {
-                if (imgData.cardNum >= 1 && imgData.cardNum <= qArr.length) {
-                    const buf = await imgData.file.arrayBuffer();
-                    newZip.file('content/images/card-' + imgData.cardNum + '.' + imgData.ext, buf);
+        if (['Dialog Cards', 'Flashcards'].includes(type)) {
+            if (cardImageAll) {
+                const buf = await cardImageAll.file.arrayBuffer();
+                newZip.file('content/images/card-all.' + cardImageAll.ext, buf);
+            } else if (cardImages.length > 0) {
+                const qArr = Array.isArray(data) ? data : (data.cards || data.dialogs || data.questions || []);
+                for (const imgData of cardImages) {
+                    if (imgData.cardNum >= 1 && imgData.cardNum <= qArr.length) {
+                        const buf = await imgData.file.arrayBuffer();
+                        newZip.file('content/images/card-' + imgData.cardNum + '.' + imgData.ext, buf);
+                    }
                 }
             }
         }
@@ -1911,6 +1946,27 @@ document.getElementById('card-image-file').addEventListener('change', function(e
         reader.readAsDataURL(file);
     }));
     Promise.all(readers).then(() => renderCardImageList());
+    this.value = '';
+});
+
+// CARD IMAGE ALL FILE INPUT
+document.getElementById('card-image-all-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const dataUrl = ev.target.result;
+        const imgEl = new Image();
+        imgEl.onload = () => {
+            const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+            const mime = file.type || 'image/jpeg';
+            cardImageAll = { file, dataUrl, width: imgEl.naturalWidth, height: imgEl.naturalHeight, ext, mime };
+            document.getElementById('card-img-all-preview').innerHTML =
+                `<div class="card-img-item"><img src="${dataUrl}" class="card-img-thumb" alt="Vorschau"><span class="card-img-label" title="${file.name}">${file.name}</span><button type="button" class="btn-sm btn-danger card-img-del" onclick="removeCardImageAll()" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button></div>`;
+        };
+        imgEl.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
     this.value = '';
 });
 
