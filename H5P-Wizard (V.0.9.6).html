@@ -673,38 +673,7 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-const WP_BASE = "https://ws-lab.de/wp-content/uploads/h5p/exports/";
-const TEMPLATE_TYPES = [
-    { value: "Fill in the Blanks",    file: "fill-in-the-blanks.h5p",     icon: "fa-pen-to-square",         label: "Fill in the Blanks",    defaultUrl: WP_BASE + "fill-in-the-blanks-1.h5p" },
-    { value: "Complex Fill in the Blanks", file: "complex-fill-in-the-blanks.h5p", icon: "fa-pen-nib", label: "Complex Fill in the Blanks", defaultUrl: "https://ws-lab.de/wp-content/uploads/h5p/exports/advanced-blanks-example-1-503253.h5p" },
-    { value: "Drag the Words",        file: "drag-the-words.h5p",          icon: "fa-hand-pointer",          label: "Drag the Words",         defaultUrl: WP_BASE + "drag-the-words-1399.h5p" },
-    { value: "Mark the Words",        file: "mark-the-words.h5p",          icon: "fa-highlighter",           label: "Mark the Words",         defaultUrl: WP_BASE + "mark-the-words-2-1408.h5p" },
-    { value: "Multiple Choice",       file: "multiple-choice.h5p",         icon: "fa-square-check",          label: "Multiple Choice",        defaultUrl: WP_BASE + "multiple-choice-713.h5p" },
-    { value: "Question Set",          file: "question-set.h5p",            icon: "fa-layer-group",           label: "Question Set",           defaultUrl: WP_BASE + "question-set-616.h5p" },
-    { value: "Single Choice Set",     file: "single-choice-set.h5p",       icon: "fa-circle-dot",            label: "Single Choice Set",      defaultUrl: WP_BASE + "single-choice-set-1515.h5p" },
-    { value: "True False",            file: "true-false.h5p",              icon: "fa-scale-balanced",        label: "True/False",             defaultUrl: WP_BASE + "true-false-question-34806.h5p" },
-    { value: "Dialog Cards",          file: "dialog-cards.h5p",            icon: "fa-clone",                 label: "Dialog Cards",           defaultUrl: WP_BASE + "dialog-cards-620.h5p" },
-    { value: "Flashcards",            file: "flashcards.h5p",              icon: "fa-id-card-clip",          label: "Flashcards",             defaultUrl: WP_BASE + "flashcards-51-111820.h5p" },
-    { value: "Sort the Paragraphs",   file: "sort-the-paragraphs.h5p",     icon: "fa-arrow-down-short-wide", label: "Sort the Paragraphs",    defaultUrl: WP_BASE + "example-content-sort-paragraphs-1209169.h5p" },
-    { value: "Guess the Answer",      file: "guess-the-answer.h5p",        icon: "fa-eye-slash",             label: "Guess the Answer",       defaultUrl: WP_BASE + "guess-the-answer-2402.h5p" },
-    { value: "Summary",               file: "summary.h5p",                 icon: "fa-list-check",            label: "Summary",                defaultUrl: WP_BASE + "summary-714.h5p" },
-    { value: "Interactive Video",     file: "interactive-video.h5p",       icon: "fa-video",                 label: "Interactive Video",      defaultUrl: WP_BASE + "interactive-video-2-618.h5p" },
-    { value: "Page",                  file: "page.h5p",                    icon: "fa-file-lines",            label: "Page",                   defaultUrl: WP_BASE + "h5p-column-34794.h5p" },
-    { value: "Accordion",             file: "accordion.h5p",               icon: "fa-bars-staggered",        label: "Accordion",              defaultUrl: WP_BASE + "accordion-6-7138.h5p" },
-    { value: "Crossword",             file: "crossword.h5p",               icon: "fa-table-cells",           label: "Crossword",              defaultUrl: WP_BASE + "example-content-crossword-1209160.h5p" },
-    { value: "Timeline",              file: "timeline.h5p",                icon: "fa-timeline",              label: "Timeline",               defaultUrl: WP_BASE + "timeline-3-716.h5p" },
-];
-
-const DB_NAME = "H5PWizardCache";
-const DB_VERSION = 2;
-const STORE_NAME = "templates";
-const CONFIG_STORE = "config";
-const WP_URLS_KEY = "wpUrls";
-
-let db = null;
-
-// ===== CARD IMAGE HANDLING =====
+// ===== CARD IMAGE HANDLING (global scope – required for inline onclick handlers) =====
 const cardImages = []; // [{ cardNum, file, dataUrl, width, height, ext, mime }]
 
 function toggleCardImageSection() {
@@ -737,9 +706,39 @@ function removeCardImage(idx) {
     cardImages.splice(idx, 1);
     renderCardImageList();
 }
-
-// file-input handler is registered after DOMContentLoaded (see bottom of script)
 // ===== END CARD IMAGE HANDLING =====
+
+document.addEventListener('DOMContentLoaded', () => {
+const WP_BASE = "https://ws-lab.de/wp-content/uploads/h5p/exports/";
+const TEMPLATE_TYPES = [
+    { value: "Fill in the Blanks",    file: "fill-in-the-blanks.h5p",     icon: "fa-pen-to-square",         label: "Fill in the Blanks",    defaultUrl: WP_BASE + "fill-in-the-blanks-1.h5p" },
+    { value: "Complex Fill in the Blanks", file: "complex-fill-in-the-blanks.h5p", icon: "fa-pen-nib", label: "Complex Fill in the Blanks", defaultUrl: "https://ws-lab.de/wp-content/uploads/h5p/exports/advanced-blanks-example-1-503253.h5p" },
+    { value: "Drag the Words",        file: "drag-the-words.h5p",          icon: "fa-hand-pointer",          label: "Drag the Words",         defaultUrl: WP_BASE + "drag-the-words-1399.h5p" },
+    { value: "Mark the Words",        file: "mark-the-words.h5p",          icon: "fa-highlighter",           label: "Mark the Words",         defaultUrl: WP_BASE + "mark-the-words-2-1408.h5p" },
+    { value: "Multiple Choice",       file: "multiple-choice.h5p",         icon: "fa-square-check",          label: "Multiple Choice",        defaultUrl: WP_BASE + "multiple-choice-713.h5p" },
+    { value: "Question Set",          file: "question-set.h5p",            icon: "fa-layer-group",           label: "Question Set",           defaultUrl: WP_BASE + "question-set-616.h5p" },
+    { value: "Single Choice Set",     file: "single-choice-set.h5p",       icon: "fa-circle-dot",            label: "Single Choice Set",      defaultUrl: WP_BASE + "single-choice-set-1515.h5p" },
+    { value: "True False",            file: "true-false.h5p",              icon: "fa-scale-balanced",        label: "True/False",             defaultUrl: WP_BASE + "true-false-question-34806.h5p" },
+    { value: "Dialog Cards",          file: "dialog-cards.h5p",            icon: "fa-clone",                 label: "Dialog Cards",           defaultUrl: WP_BASE + "dialog-cards-620.h5p" },
+    { value: "Flashcards",            file: "flashcards.h5p",              icon: "fa-id-card-clip",          label: "Flashcards",             defaultUrl: WP_BASE + "flashcards-51-111820.h5p" },
+    { value: "Sort the Paragraphs",   file: "sort-the-paragraphs.h5p",     icon: "fa-arrow-down-short-wide", label: "Sort the Paragraphs",    defaultUrl: WP_BASE + "example-content-sort-paragraphs-1209169.h5p" },
+    { value: "Guess the Answer",      file: "guess-the-answer.h5p",        icon: "fa-eye-slash",             label: "Guess the Answer",       defaultUrl: WP_BASE + "guess-the-answer-2402.h5p" },
+    { value: "Summary",               file: "summary.h5p",                 icon: "fa-list-check",            label: "Summary",                defaultUrl: WP_BASE + "summary-714.h5p" },
+    { value: "Interactive Video",     file: "interactive-video.h5p",       icon: "fa-video",                 label: "Interactive Video",      defaultUrl: WP_BASE + "interactive-video-2-618.h5p" },
+    { value: "Page",                  file: "page.h5p",                    icon: "fa-file-lines",            label: "Page",                   defaultUrl: WP_BASE + "h5p-column-34794.h5p" },
+    { value: "Accordion",             file: "accordion.h5p",               icon: "fa-bars-staggered",        label: "Accordion",              defaultUrl: WP_BASE + "accordion-6-7138.h5p" },
+    { value: "Crossword",             file: "crossword.h5p",               icon: "fa-table-cells",           label: "Crossword",              defaultUrl: WP_BASE + "example-content-crossword-1209160.h5p" },
+    { value: "Timeline",              file: "timeline.h5p",                icon: "fa-timeline",              label: "Timeline",               defaultUrl: WP_BASE + "timeline-3-716.h5p" },
+];
+
+const DB_NAME = "H5PWizardCache";
+const DB_VERSION = 2;
+const STORE_NAME = "templates";
+const CONFIG_STORE = "config";
+const WP_URLS_KEY = "wpUrls";
+
+let db = null;
+
 
 function openDB() {
     return new Promise((resolve, reject) => {
