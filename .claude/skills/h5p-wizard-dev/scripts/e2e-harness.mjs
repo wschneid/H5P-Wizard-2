@@ -37,7 +37,7 @@ const DEPS = {
   'advanced-blanks': ['H5P.AdvancedBlanks 1.2'],
   'drag-the-words': ['H5P.DragText 1.10'],
   'mark-the-words': ['H5P.MarkTheWords 1.11'],
-  'multiple-choice': ['H5P.MultiChoice 1.16'],
+  'multiple-choice': ['H5P.MultiChoice 1.16', 'H5P.Question 1.4'],
   'question-set': ['H5P.QuestionSet 1.20', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11'],
   'single-choice-set': ['H5P.SingleChoiceSet 1.11'],
   'true-false': ['H5P.TrueFalse 1.8'],
@@ -52,6 +52,8 @@ const DEPS = {
   'crossword': ['H5P.Crossword 0.4'],
   'timeline': ['H5P.Timeline 1.1'],
 };
+// Zusätzliche Bibliotheksordner ohne Eintrag in h5p.json (Exporte enthalten teils mehrere Versionen)
+const EXTRA_FOLDERS = { 'multiple-choice': ['H5P.Question-1.5'] };
 async function makeTemplate(url) {
   const key = Object.keys(DEPS).find(k => url.includes(k));
   const deps = (DEPS[key] || ['H5P.Unknown 1.0']).map(s => { const [m, v] = s.split(' '); const [a, b] = v.split('.'); return { machineName: m, majorVersion: a, minorVersion: b }; });
@@ -59,6 +61,7 @@ async function makeTemplate(url) {
   zip.file('h5p.json', JSON.stringify({ title: 'Tpl', language: 'de', mainLibrary: deps[0].machineName, embedTypes: ['iframe'], license: 'U', preloadedDependencies: deps }));
   zip.file('content/content.json', JSON.stringify({ l10n: { checkAnswer: 'Überprüfen' } }));
   for (const d of deps) zip.file(`${d.machineName}-${d.majorVersion}.${d.minorVersion}/library.json`, '{}');
+  for (const f of EXTRA_FOLDERS[key] || []) zip.file(`${f}/library.json`, '{}');
   return zip.generateAsync({ type: 'nodebuffer' });
 }
 
@@ -98,7 +101,7 @@ const results = [];
 const record = (name, ok, detail, known = false) => results.push({ name, ok, detail, known });
 
 // ---------- 1) Prompts ----------
-const SINGLE_ITEM_TYPES = ['True False', 'Guess the Answer'];
+const SINGLE_ITEM_TYPES = ['Guess the Answer'];
 const TYPES = await page.$$eval('input[name="type"]', els => els.filter(e => getComputedStyle(e.nextElementSibling).display !== 'none').map(e => ({ id: e.id, value: e.value })));
 for (const t of TYPES) {
   await selectType(t.id);
@@ -110,12 +113,18 @@ for (const t of TYPES) {
   const p = await page.evaluate(() => window.__prompts.at(-1));
   fs.writeFileSync(path.join(OUT, `prompt-${t.id}.txt`), p);
   const miss = ['THEMA-Photosynthese', 'ANWEISUNG-XYZ', 'BASISTEXT-ABC'].filter(s => !p.includes(s));
-  record(`prompt:${t.value}: Thema/Anweisung/Basistext enthalten`, miss.length === 0, miss.length ? 'fehlt: ' + miss.join(', ') : '',
-    ['Interactive Video', 'Accordion', 'Crossword', 'Timeline'].includes(t.value));
+  // Interactive Video bettet den Basistext als Transkript ein – gleiche Prüfung
+  record(`prompt:${t.value}: Thema/Anweisung/Basistext enthalten`, miss.length === 0, miss.length ? 'fehlt: ' + miss.join(', ') : '');
   if (SINGLE_ITEM_TYPES.includes(t.value)) {
-    const m = p.match(/Exakt \d+ Fragen/);
-    record(`prompt:${t.value}: keine Mengenangabe für Einzelaufgabe`, !m, m ? m[0] : '', true);
+    const m = p.match(/\*\*Anzahl:\*\*[^\n]*/);
+    record(`prompt:${t.value}: keine Mengenangabe für Einzelaufgabe`, !m, m ? m[0] : '');
   }
+  if (t.value === 'Sort the Paragraphs') {
+    record('prompt:Sort the Paragraphs: Menge in Absätzen', /Exakt \d+ Absätze/.test(p), '');
+    record('prompt:Sort the Paragraphs: Beispiel ohne Nummerierung', !/"1\. /.test(p), '');
+  }
+  if (t.value === 'Multiple Choice') record('prompt:Multiple Choice: Format mit "questions"-Array', /\{"questions":\[/.test(p), '');
+  record(`prompt:${t.value}: korrekter Artikel der Schulart`, !/an der Gymnasium/.test(p), '');
 }
 
 // ---------- 2) Packing ----------
@@ -138,31 +147,42 @@ async function pack(name, typeId, json, setup) {
 // Jeder Fall: [name, typeId, json, check(result) -> Fehlertext|null, known?, setup?]
 const CASES = [
   ['mc-mehrere-fragen', 't-mc', { questions: [1, 2, 3].map(i => ({ text: 'F' + i, answers: [{ text: 'a', correct: true }, { text: 'b', correct: false, feedback: 'nein' }] })) },
-    r => (r.content && r.h5p.mainLibrary === 'H5P.QuestionSet') || (r.content?.questions?.length === 3) ? null : 'nur 1 von 3 Fragen exportiert', true],
+    r => (r.h5p?.mainLibrary === 'H5P.QuestionSet' && r.content?.questions?.length === 3) ? null : 'nur 1 von 3 Fragen exportiert'],
   ['mc-behaviour-type', 't-mc', { text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] },
-    r => r.content?.behaviour?.type ? null : 'behaviour.type fehlt (singleAnswer ist veraltet)', true],
+    r => r.content?.behaviour?.type ? null : 'behaviour.type fehlt (singleAnswer ist veraltet)'],
+  ['mehrere-versionen-im-template', 't-mc', { questions: [{ text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
+    r => { const q = r.h5p?.preloadedDependencies?.find(d => d.machineName === 'H5P.Question'); return q && `${q.majorVersion}.${q.minorVersion}` === '1.4' ? null : 'h5p.json-Version ersetzt, obwohl im Template vorhanden: ' + JSON.stringify(q); }],
   ['tf-feedback', 't-tf', { question: 'Pflanzen atmen nur nachts.', correct: 'false', feedback: 'Zellatmung läuft immer.' },
-    r => r.content?.behaviour?.feedbackOnWrong ? null : 'Feedback nicht in behaviour.feedbackOnWrong', true],
+    r => r.content?.behaviour?.feedbackOnWrong ? null : 'Feedback nicht in behaviour.feedbackOnWrong'],
+  ['tf-mehrere-aussagen', 't-tf', { questions: [{ question: 'A', correct: 'true', feedback: 'x' }, { question: 'B', correct: false, feedback: 'y' }] },
+    r => (r.h5p?.mainLibrary === 'H5P.QuestionSet' && r.content?.questions?.every(q => q.library.startsWith('H5P.TrueFalse')) && r.content.questions[1].params.correct === 'false') ? null : 'mehrere TF-Aussagen nicht als Question Set verpackt'],
   ['blanks-url-im-text', 't-blanks', '```json\n{"text":"Fülle die Lücken.","questions":["Mehr unter https://example.org: Die *Sonne* scheint."]}\n```',
-    r => r.packBtnDisabled ? 'sanitizeJSON zerstört "//" in Strings: ' + r.validation : null, true],
+    r => r.packBtnDisabled ? 'sanitizeJSON zerstört "//" in Strings: ' + r.validation : (/https:\/\/example\.org/.test(r.content?.questions?.[0] || '') ? null : 'URL fehlt im Ergebnis')],
+  ['json-kommentar-und-komma', 't-blanks', 'Hier ist dein JSON:\n{"text":"Lies // genau.","questions":["Die *Sonne* scheint.",], // Kommentar\n}\nViel Erfolg!',
+    r => r.packBtnDisabled ? 'Reparatur fehlgeschlagen: ' + r.validation : (/Lies \/\/ genau/.test(r.content?.text || '') ? null : '"//" im String beschädigt')],
   // Blanks.questions ist ein HTML-Feld: rohes "<" wird vom HTML-Filter als Tag-Anfang behandelt.
   ['blanks-html-escape', 't-blanks', { text: 'Fülle die Lücken.', questions: ['Es gilt 3 < 5 und *Wasser* & Licht.'] },
-    r => /3 &lt; 5/.test(r.content?.questions?.[0] || '') ? null : '"<" / "&" in HTML-Feld nicht kodiert', true],
+    r => /3 &lt; 5/.test(r.content?.questions?.[0] || '') ? null : '"<" / "&" in HTML-Feld nicht kodiert'],
   ['timeline-epochen', 't-timeline', { headline: 'H', intro: 'I', events: [{ startDate: '1919', headline: 'E', text: 't' }], eras: [{ startDate: '1918', endDate: '1933', label: 'Weimarer Republik' }] },
-    r => r.content?.timeline?.era?.[0]?.headline === 'Weimarer Republik' ? null : 'Epochen-Titel nicht in era[].headline', true],
+    r => r.content?.timeline?.era?.[0]?.headline === 'Weimarer Republik' ? null : 'Epochen-Titel nicht in era[].headline'],
+  ['timeline-datumsformat', 't-timeline', { headline: 'H', events: [{ startDate: '9.11.1989', headline: 'Mauerfall' }, { startDate: '44 v. Chr.', headline: 'Caesar' }, { startDate: 1990, headline: 'Einheit' }] },
+    r => { const d = r.content?.timeline?.date || []; const got = d.map(e => e.startDate).join('|'); return got === '1989,11,9|-44|1990' ? null : 'Datumsformat: ' + got; }],
   ['complex-blanks-alle-antworten', 't-complex-blanks', { taskDescription: 'T', text: 'In ____ landete Apollo 11.', blanks: [{ correct: '1969', incorrectAnswers: [{ text: '1968', feedback: 'zu früh' }] }] },
-    r => ['alternatives', 'all'].includes(r.content?.behaviour?.selectAlternatives) ? null : 'selectAlternatives=' + r.content?.behaviour?.selectAlternatives + ' (erlaubt: alternatives|all)', true,
-    () => { const m = document.getElementById('complex-blanks-mode'); m.value = 'selection'; m.dispatchEvent(new Event('change')); document.getElementById('complex-blanks-alternatives').value = 'answers'; }],
+    r => r.content?.behaviour?.selectAlternatives === 'all' ? null : 'selectAlternatives=' + r.content?.behaviour?.selectAlternatives + ' (erwartet: all)', false,
+    () => { const m = document.getElementById('complex-blanks-mode'); m.value = 'selection'; m.dispatchEvent(new Event('change')); const a = document.getElementById('complex-blanks-alternatives'); a.value = [...a.options].some(o => o.value === 'all') ? 'all' : 'answers'; }],
   ['questionset-tf-feedback', 't-qs', { questions: [{ type: 'tf', question: 'Q', correct: 'false', feedback: 'Begründung' }, { type: 'mc', text: 'M', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
-    r => r.content?.questions?.[0]?.params?.behaviour?.feedbackOnWrong ? null : 'TF-Feedback im QuestionSet geht verloren', true],
-  ['sort-taskdescription', 't-sort', { paragraphs: ['A', 'B', 'C'] },
-    r => r.content?.taskDescription ? null : 'Pflichtfeld taskDescription fehlt', true],
+    r => r.content?.questions?.[0]?.params?.behaviour?.feedbackOnWrong ? null : 'TF-Feedback im QuestionSet geht verloren'],
+  ['sort-taskdescription', 't-sort', { paragraphs: ['1. A', '2) B', 'C'] },
+    r => !r.content?.taskDescription ? 'Pflichtfeld taskDescription fehlt' : (r.content.paragraphs?.join('') === '<p>A</p><p>B</p><p>C</p>' ? null : 'Nummerierung nicht entfernt: ' + r.content.paragraphs?.join(''))],
   ['page-versionen', 't-page', { blocks: [{ type: 'text', text: 'Hallo' }, { type: 'mc', question: 'Q', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
-    r => { const col = r.h5p?.preloadedDependencies?.find(d => d.machineName === 'H5P.Column'); const has = r.files?.some(f => f.startsWith(`H5P.Column-${col?.majorVersion}.${col?.minorVersion}/`)); return has ? null : `h5p.json verlangt H5P.Column ${col?.majorVersion}.${col?.minorVersion}, Paket enthält andere Version`; }, true],
-  ['crossword-versionen', 't-crossword', { taskDescription: 'Löse', words: [{ answer: 'Blatt', clue: 'grün' }, { answer: 'Wurzel', clue: 'unten' }, { answer: 'Licht', clue: 'hell' }] },
-    r => { const d = r.h5p?.preloadedDependencies?.find(d => d.machineName === 'H5P.Crossword'); return r.files?.some(f => f.startsWith(`H5P.Crossword-${d?.majorVersion}.${d?.minorVersion}/`)) ? null : 'Versions-Mismatch h5p.json vs. Bibliotheksordner'; }, true],
+    r => { const col = r.h5p?.preloadedDependencies?.find(d => d.machineName === 'H5P.Column'); const has = r.files?.some(f => f.startsWith(`H5P.Column-${col?.majorVersion}.${col?.minorVersion}/`)); return has ? null : `h5p.json verlangt H5P.Column ${col?.majorVersion}.${col?.minorVersion}, Paket enthält andere Version`; }],
+  ['crossword-versionen', 't-crossword', { taskDescription: 'Löse', words: [{ answer: 'Blatt', clue: 'grün' }, { answer: 'Wurzel', clue: 'unten' }, { answer: 'Größe', clue: 'Maß' }] },
+    r => { const d = r.h5p?.preloadedDependencies?.find(d => d.machineName === 'H5P.Crossword'); if (!r.files?.some(f => f.startsWith(`H5P.Crossword-${d?.majorVersion}.${d?.minorVersion}/`))) return 'Versions-Mismatch h5p.json vs. Bibliotheksordner'; return r.content?.words?.[2]?.answer === 'GROESSE' ? null : 'Umlaute nicht ersetzt: ' + r.content?.words?.[2]?.answer; }],
+  ['video-shorts-url', 't-video', { interactions: [{ time: '1:02:03', type: 'tf', question: 'Q', correct: 'true', feedback: 'f' }] },
+    r => { const v = r.content?.interactiveVideo; const path = v?.video?.files?.[0]?.path; const t = v?.assets?.interactions?.[0]?.duration?.from; return path === 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' && t === 3723 ? null : `Video-URL ${path}, Zeit ${t}`; }, false,
+    () => { document.getElementById('youtube-url').value = 'https://youtube.com/shorts/dQw4w9WgXcQ?feature=share'; }],
   ['dateiname-umlaute', 't-cards', { cards: [{ text: 'Photosynthese', answer: 'Licht → Glucose' }] },
-    r => /Ue?bung/i.test(r.filename || '') ? null : 'Dateiname verstümmelt: ' + r.filename, true],
+    r => /Ue?bung/i.test(r.filename || '') ? null : 'Dateiname verstümmelt: ' + r.filename],
 ];
 for (const [name, typeId, json, check, known, setup] of CASES) {
   let r;

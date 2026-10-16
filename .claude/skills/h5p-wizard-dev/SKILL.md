@@ -16,7 +16,9 @@ fünf Schritten (Grundlagen → Inhaltstyp → Didaktik → Prompt → Export). 
 | Packer | `sanitizeJSON`, `mapToH5PStructure()`, `packBtn`-Handler, `libPatches`, `findLib` | KI-JSON → `content/content.json` + `h5p.json` |
 | Cache | IndexedDB `H5PWizardCache` | Templates (.h5p) |
 
-Analyse & Befundliste: `docs/ANALYSE.md` (Stand 2026-10). Lies sie vor größeren Änderungen.
+Analyse & Befundliste: `docs/ANALYSE.md` (Stand 2026-10). Phasen und Status: `docs/UMSETZUNGSPLAN.md`.
+Lies beide vor größeren Änderungen. Neue Versionen entstehen als Kopie der letzten Datei mit neuer Nummer
+(`H5P-Wizard (V.x.y.z).html`); ältere Versionen bleiben im Repo.
 
 ## Goldene Regeln (H5P-Prinzipien, gelten für jede Änderung)
 
