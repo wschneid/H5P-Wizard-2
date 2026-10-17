@@ -165,7 +165,7 @@
       "repo": "h5p/h5p-course-presentation",
       "release": "1.27.27",
       "master": "1.27.27",
-      "inWizard": false
+      "inWizard": true
     },
     "H5P.BranchingScenario": {
       "repo": "h5p/h5p-branching-scenario",

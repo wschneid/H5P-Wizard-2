@@ -32,15 +32,21 @@ MACHINES = [
     "H5P.QuestionSet", "H5P.SingleChoiceSet", "H5P.TrueFalse", "H5P.Dialogcards", "H5P.Flashcards",
     "H5P.SortParagraphs", "H5P.GuessTheAnswer", "H5P.Summary", "H5P.InteractiveVideo", "H5P.Column",
     "H5P.Accordion", "H5P.Crossword", "H5P.Timeline", "H5P.AdvancedText", "H5P.Image",
-    "H5P.Essay", "H5P.FindTheWords", "H5P.Text", "H5P.InteractiveBook",
+    "H5P.Essay", "H5P.FindTheWords", "H5P.Text", "H5P.InteractiveBook", "H5P.CoursePresentation",
 ]
-# Bibliotheken ohne offizielle deutsche Sprachdatei: Übersetzung von Hand (Platzhalter wie @found unverändert)
+# Bibliotheken ohne (vollständige) deutsche Sprachdatei: Übersetzung von Hand (Platzhalter wie @found unverändert)
 MANUAL_DE = {
     "H5P.FindTheWords": {
         "taskDescription": "Finde die Wörter im Buchstabengitter.",
         "l10n": {"check": "Überprüfen", "tryAgain": "Wiederholen", "showSolution": "Lösung anzeigen",
                  "found": "@found von @totalWords gefunden", "timeSpent": "Benötigte Zeit",
                  "score": "Du hast @score von @total Punkten erreicht", "wordListHeader": "Finde die Wörter"},
+    },
+    # language/de.json von Course Presentation ist unvollständig
+    "H5P.CoursePresentation": {
+        "l10n": {"slides": "Folien", "resultHeader": "Ergebnisse", "amountCorrect": "@value / @max richtig",
+                 "amountCorrectAria": "@value von @max richtig", "confirmDialogConfirmLabel": "Bestätigen",
+                 "confirmDialogCancelLabel": "Abbrechen"},
     },
 }
 FILE_TYPES = {"image", "file", "video", "audio"}

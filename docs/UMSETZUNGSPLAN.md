@@ -18,6 +18,7 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 | 4 | **V.0.12** | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | ✅ umgesetzt, Upload-Test offen |
 | 5 | **V.1.0** | Typ-Registry, Interactive Book, Barrierefreiheit, Eingaben merken, Dark Mode (Standard) | ✅ umgesetzt, Upload-Test offen |
 | 5a | **V.1.0.1** | Server-Vorlage ausgeblendet (immer eingebaut), Kopfleiste ohne Überlappung | ✅ umgesetzt |
+| 6 | **V.1.1** | Neuer Inhaltstyp Course Presentation | ✅ umgesetzt, Upload-Test offen |
 
 ---
 
@@ -145,3 +146,18 @@ Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf 
 - [ ] Font Awesome selbst hosten (DSGVO) – braucht Zugriff auf den Server.
 
 **Später:** Branching Scenario, Structure Strip, Dictation (Sprachausgabe), Memory.
+
+## V.1.1 „Course Presentation“ ✅
+
+| Vorhaben | Umsetzung |
+|---|---|
+| **Course Presentation** (H5P.CoursePresentation 1.27) | Neuer Typ: Präsentation mit 3–20 Folien. Jede Folie hat eine Überschrift (zugleich Eintrag im Folienverzeichnis) und Stichpunkte (werden als Aufzählung dargestellt); auf Aufgabenfolien steht zusätzlich eine Aufgabe. Wählbar: Multiple Choice, Wahr/Falsch, Lückentext, Drag the Words, Mark the Words, Single Choice Set, Summary, Lernkarten – genau die Typen, die Course Presentation als Folienelement erlaubt. Die Aufgaben nutzen dieselbe Umsetzung wie die Page-Bausteine. Optional Ergebnisfolie am Ende. Layout: Überschrift oben; Text und Aufgabe nebeneinander bzw. volle Breite. |
+| Prompt | Stichpunkte statt Fließtext (max. 60 Wörter pro Folie), Titelfolie mit Leitfrage, Aufgaben verteilt und nur zum Stoff der Folien davor; Aufgabenformate als Varianten A, B, C … |
+| Prüfung | Je Folie Überschrift, Text oder Aufgabe; Aufgabentyp muss auf Folien erlaubt sein; Aufgaben werden wie Page-Bausteine geprüft; Hinweis bei abweichender Folienzahl oder zu viel Text. |
+| Eingebaute Vorlage | 25 Bibliotheken; fehlende deutsche Beschriftungen von Course Presentation („Folien“, „Ergebnisse“ …) von Hand ergänzt. |
+
+**Testergebnis V.1.1:** E2E 152/152 (neu: Prompt-Vertragstest, Präsentation mit Text/Aufgabe/Aufzählung, alle 8 Aufgabentypen auf Folien); 61 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] In Moodle prüfen, ob **H5P.CoursePresentation 1.27** installiert ist (sonst Version über „Versionen aus H5P-Datei übernehmen“ anpassen).
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Darstellung der Folien (Textgröße, Platz für Aufgaben).
