@@ -15,7 +15,7 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 | 2 | **V.0.10** | Robuster Export: Template-Merge, Validierung, Korrektur-Prompt | ✅ umgesetzt, Upload-Test offen |
 | 2a | **V.0.10.1** | Eingebaute Vorlagen ohne Server, Bibliotheksversionen für Moodle | ✅ umgesetzt, Upload-Test offen |
 | 3 | **V.0.11** | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | ✅ umgesetzt, Praxistest mit KIs offen |
-| 4 | V.0.12 | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | geplant |
+| 4 | **V.0.12** | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | ✅ umgesetzt, Upload-Test offen |
 | 5 | V.1.0 | Architektur (Typ-Registry), Interactive Book, Barrierefreiheit, Offline/DSGVO | geplant |
 
 ---
@@ -106,10 +106,23 @@ Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf 
 - [ ] Praxistest der neuen Prompts mit den an der Schule genutzten KIs (z. B. telli, fobizz, ChatGPT): je 2–3 Typen erzeugen, JSON einfügen, Vorschau und Korrektur-Prompt beobachten. Besonders: Werden `"afb"`-Kennzeichnungen und die Struktur `"niveaus"` zuverlässig eingehalten?
 - [ ] Upload-Test in Moodle (Lehrkraft-Rolle), u. a. eine Datei je Niveau.
 
-## Phase 4 – V.0.12 „Neue Inhaltstypen“
+## Phase 4 – V.0.12 „Neue Inhaltstypen“ ✅
 
-Reihenfolge nach Nutzen/Aufwand (ANALYSE §7): Essay → Find the Words → Page-Bausteine (Drag/Mark the Words, Dialog Cards, Accordion, Guess the Answer, Essay) → Question Set + Essay → Interactive Video mit weiteren Interaktionen.
-Je Typ: Workflow B des Skills (`h5p-library-scout` + `h5p-prompt-engineer` parallel → `h5p-content-type-builder` → `h5p-qa-tester`), Template auf ws-lab.de bereitstellen.
+| # | Vorhaben | Umsetzung |
+|---|---|---|
+| 1 | **Essay** (H5P.Essay 1.5) | Neuer Typ „Essay (Freitext)“: Aufgabenstellung mit Operator, Schreibimpuls, Schlüsselwörter mit Alternativen, Punkten und Feedback (Treffer/fehlt), Musterlösung; Optionen: Anzahl Schlüsselwörter, erwartete Antwortlänge (setzt Mindest-/Höchstlänge). Prüfung warnt bei fehlenden Schlüsselwörtern/Musterlösung. |
+| 2 | **Find the Words** (H5P.FindTheWords 1.4) | Neuer Typ „Suchsel“: Wörter werden in Großbuchstaben umgewandelt, Umlaute ersetzt, Leerzeichen entfernt; Füllbuchstaben enthalten alle Buchstaben der Wörter (nichts fällt auf); Option „nur waagerecht und senkrecht“. Deutsche Beschriftungen von Hand ergänzt (keine offizielle Sprachdatei). |
+| 3 | **Page: 6 neue Bausteine** | Drag the Words, Mark the Words, Freitext (Essay), Lernkarten, Denkfrage, Accordion – mit eigenen Optionen; Umsetzung identisch mit den gleichnamigen Inhaltstypen (ein Mapping). Page hat jetzt 13 Bausteine. |
+| 4 | **Question Set + Essay** | Neuer Fragetyp `essay` im Quiz. |
+| 5 | **Interactive Video** | Zusätzliche Interaktionen wählbar: Lückentext, Drag the Words, Text-Einblendung (Merksatz, H5P.Text). |
+| – | Eingebaute Vorlagen | Erweitert um H5P.Essay, H5P.FindTheWords, H5P.Text (23 Bibliotheken, 39 KB). Neue Typen haben keine Server-Vorlage und nutzen auch im Server-Modus die eingebaute Vorlage. |
+| – | Aufgeräumt | Mark the Words bekam ein unnötiges leeres Feld `distractors`. |
+
+**Testergebnis V.0.12:** E2E 130/130 (inkl. Vertragstests für Video mit allen Interaktionen, Quiz mit Essay, Page mit allen 13 Bausteinen); 55 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] In Moodle prüfen, ob **H5P.Essay 1.5** und **H5P.FindTheWords 1.4** installiert sind (Website-Administration → H5P → H5P-Inhaltstypen verwalten) – sonst über den H5P-Hub nachinstallieren lassen. Für Text-Einblendungen im Video wird **H5P.Text 1.1** benötigt (meist mit Interactive Video installiert).
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Essay, Find the Words, Page mit neuen Bausteinen, Video mit Lückentext.
 
 ## Phase 5 – V.1.0
 

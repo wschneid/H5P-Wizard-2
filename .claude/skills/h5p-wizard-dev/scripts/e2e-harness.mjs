@@ -38,7 +38,7 @@ const DEPS = {
   'drag-the-words': ['H5P.DragText 1.10'],
   'mark-the-words': ['H5P.MarkTheWords 1.11'],
   'multiple-choice': ['H5P.MultiChoice 1.16', 'H5P.Question 1.4'],
-  'question-set': ['H5P.QuestionSet 1.20', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11'],
+  'question-set': ['H5P.QuestionSet 1.20', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11', 'H5P.Essay 1.5'],
   'single-choice-set': ['H5P.SingleChoiceSet 1.11'],
   'true-false': ['H5P.TrueFalse 1.8'],
   'dialog-cards': ['H5P.Dialogcards 1.9'],
@@ -46,8 +46,9 @@ const DEPS = {
   'sort-paragraphs': ['H5P.SortParagraphs 0.11'],
   'guess-the-answer': ['H5P.GuessTheAnswer 1.5', 'H5P.Image 1.1'],
   'summary': ['H5P.Summary 1.10'],
-  'interactive-video': ['H5P.InteractiveVideo 1.28', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Summary 1.10'],
-  'h5p-column': ['H5P.Column 1.16', 'H5P.AdvancedText 1.1', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.Summary 1.10', 'H5P.SingleChoiceSet 1.11'],
+  'interactive-video': ['H5P.InteractiveVideo 1.28', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Summary 1.10', 'H5P.Text 1.1', 'H5P.Blanks 1.14', 'H5P.DragText 1.10'],
+  'h5p-column': ['H5P.Column 1.16', 'H5P.AdvancedText 1.1', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.Summary 1.10', 'H5P.SingleChoiceSet 1.11',
+    'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11', 'H5P.Essay 1.5', 'H5P.Dialogcards 1.9', 'H5P.GuessTheAnswer 1.5', 'H5P.Accordion 1.0'],
   'accordion': ['H5P.Accordion 1.0', 'H5P.AdvancedText 1.1'],
   'crossword': ['H5P.Crossword 0.4'],
   'timeline': ['H5P.Timeline 1.1'],
@@ -189,6 +190,25 @@ const CASES = [
     r => { const c = r.content || {}; return (c.answer === 'Umdrehen' && !c.title && !c.description && c.dialogs?.length === 1) ? null : 'Merge fehlerhaft: ' + JSON.stringify(c).slice(0, 200); }],
   ['mc-behaviour-type', 't-mc', { text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] },
     r => r.content?.behaviour?.type ? null : 'behaviour.type fehlt (singleAnswer ist veraltet)'],
+  // ----- Phase 4: neue Typen und Bausteine -----
+  ['essay', 't-essay', { taskDescription: 'Erkläre die Photosynthese.', keywords: [{ keyword: 'Licht', alternatives: ['Sonnenlicht'], points: 2, feedbackMissed: 'Was braucht die Pflanze?' }, 'Chlorophyll'], sampleSolution: 'Pflanzen nutzen Licht.\nSie bilden Zucker.' },
+    r => { const c = r.content || {}; const ok = r.h5p?.mainLibrary === 'H5P.Essay' && c.keywords?.length === 2 && c.keywords[0].options.points === 2 && c.keywords[0].alternatives[0] === 'Sonnenlicht'
+      && /<p>Pflanzen nutzen Licht.<\/p><p>Sie bilden Zucker.<\/p>/.test(c.solution?.sample || '') && c.behaviour?.minimumLength > 0 && c.checkAnswer === 'Überprüfen'; return ok ? null : 'Essay: ' + JSON.stringify(c).slice(0, 300); }],
+  ['find-the-words', 't-ftw', { taskDescription: 'Finde die Begriffe.', words: ['Chlorophyll', 'Größe', 'Blatt grün', 'X'] },
+    r => { const c = r.content || {}; const o = c.behaviour?.orientations || {}; const ok = r.h5p?.mainLibrary === 'H5P.FindTheWords' && c.wordList === 'CHLOROPHYLL,GROESSE,BLATTGRUEN' && o.diagonal === false && o.vertical === true && c.l10n?.check === 'Überprüfen';
+      return ok ? null : 'Find the Words: ' + JSON.stringify(c).slice(0, 300); }, false, () => { document.getElementById('ftw-easy').checked = true; }],
+  ['page-neue-bausteine', 't-page', { blocks: [
+      { type: 'drag', taskDescription: 'Ziehe.', textField: 'Die *Sonne* scheint.' }, { type: 'mark', taskDescription: 'Verben', textField: 'Er *läuft*.' },
+      { type: 'essay', taskDescription: 'Erkläre.', keywords: [{ keyword: 'Licht' }] }, { type: 'cards', cards: [{ text: 'A', answer: 'B' }] },
+      { type: 'guess', taskDescription: 'Warum?', solutionText: 'Darum.' }, { type: 'accordion', panels: [{ title: 'T', text: 'Text' }] }] },
+    r => { const libs = (r.content?.content || []).map(b => b.content.library.split(' ')[0]); const want = ['H5P.DragText', 'H5P.MarkTheWords', 'H5P.Essay', 'H5P.Dialogcards', 'H5P.GuessTheAnswer', 'H5P.Accordion'];
+      const deps = (r.h5p?.preloadedDependencies || []).map(d => d.machineName); return (want.every((w, i) => libs[i] === w) && want.every(w => deps.includes(w))) ? null : 'Bausteine: ' + libs.join(', ') + ' | deps: ' + deps.join(', '); }],
+  ['quiz-mit-essay', 't-qs', { questions: [{ type: 'mc', text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }, { type: 'essay', taskDescription: 'Begründe.', keywords: [{ keyword: 'Grund' }] }] },
+    r => { const q = r.content?.questions?.[1]; return (q?.library?.startsWith('H5P.Essay') && q.params?.keywords?.[0]?.keyword === 'Grund') ? null : 'Essay im Quiz fehlt: ' + JSON.stringify(q).slice(0, 200); }],
+  ['video-neue-interaktionen', 't-video', { interactions: [{ time: 20, type: 'text', text: 'Merke: X.' }, { time: 60, type: 'blanks', text: 'Die *Sonne* ist ein Stern.' }, { time: 120, type: 'drag', textField: 'Der *Mond* kreist.' }] },
+    r => { const it = r.content?.interactiveVideo?.assets?.interactions || []; const libs = it.map(i => i.action.library.split(' ')[0]);
+      const ok = libs.join(',') === 'H5P.Text,H5P.Blanks,H5P.DragText' && /\*Sonne\*/.test(it[1].action.params.questions[0]) && /Merke/.test(it[0].action.params.text); return ok ? null : 'Video: ' + libs.join(', '); }, false,
+    () => { document.getElementById('youtube-url').value = 'https://youtu.be/dQw4w9WgXcQ'; }],
   ['mehrere-versionen-im-template', 't-mc', { questions: [{ text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
     r => { const q = r.h5p?.preloadedDependencies?.find(d => d.machineName === 'H5P.Question'); return q && `${q.majorVersion}.${q.minorVersion}` === '1.4' ? null : 'h5p.json-Version ersetzt, obwohl im Template vorhanden: ' + JSON.stringify(q); }],
   ['tf-feedback', 't-tf', { question: 'Pflanzen atmen nur nachts.', correct: 'false', feedback: 'Zellatmung läuft immer.' },
@@ -244,6 +264,29 @@ for (const [name, typeId, json, check, known, setup] of CASES) {
   try { r = await pack(name, typeId, json, setup); } catch (e) { r = { error: e.message }; }
   const err = r.error ? r.error : check(r);
   record(`pack:${name}`, !err, err || '', !!known);
+}
+
+// ---------- 2a) Vertragstest mit zusätzlichen Optionen (Video, Quiz, Page) ----------
+for (const [name, typeId, setup, check] of [
+  ['Video mit allen Interaktionen', 't-video', () => ['blanks', 'drag', 'text'].forEach(t => { const c = document.getElementById('iv-allow-' + t); if (c) c.checked = true; }),
+    r => (r.content?.interactiveVideo?.assets?.interactions || []).length === 5],
+  ['Quiz mit Essay', 't-qs', () => { const c = document.getElementById('qs-allow-essay'); if (c) c.checked = true; },
+    r => (r.content?.questions || []).some(q => q.library.startsWith('H5P.Essay'))],
+  ['Page mit allen Bausteinen', 't-page', () => document.querySelectorAll('#page-block-list input[type=checkbox]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); }),
+    r => (r.content?.content || []).length === 13],
+]) {
+  try {
+    await selectType(typeId);
+    await page.evaluate(setup);
+    await page.evaluate(() => navigateTo(4));
+    await page.click('#genBtn');
+    const p = await page.evaluate(() => window.__prompts.at(-1));
+    const m = p.match(/✅ BEISPIEL[^\n]*\n```json\n([\s\S]*?)\n```/);
+    if (!m) { record('beispiel-packbar:' + name, false, 'kein Beispiel'); continue; }
+    const r = await pack('beispiel-extra-' + typeId, typeId, m[1]);
+    const ok = !r.packBtnDisabled && !!r.content && check(r);
+    record('beispiel-packbar:' + name, ok, ok ? (r.validation || '').trim() : (r.validation || r.status || JSON.stringify(r.content).slice(0, 150)));
+  } catch (e) { record('beispiel-packbar:' + name, false, e.message.split('\n')[0]); }
 }
 
 // ---------- 2b) Anforderungsbereiche, Leitperspektive, drei Niveaus ----------

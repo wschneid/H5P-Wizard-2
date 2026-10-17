@@ -32,7 +32,17 @@ MACHINES = [
     "H5P.QuestionSet", "H5P.SingleChoiceSet", "H5P.TrueFalse", "H5P.Dialogcards", "H5P.Flashcards",
     "H5P.SortParagraphs", "H5P.GuessTheAnswer", "H5P.Summary", "H5P.InteractiveVideo", "H5P.Column",
     "H5P.Accordion", "H5P.Crossword", "H5P.Timeline", "H5P.AdvancedText", "H5P.Image",
+    "H5P.Essay", "H5P.FindTheWords", "H5P.Text",
 ]
+# Bibliotheken ohne offizielle deutsche Sprachdatei: Übersetzung von Hand (Platzhalter wie @found unverändert)
+MANUAL_DE = {
+    "H5P.FindTheWords": {
+        "taskDescription": "Finde die Wörter im Buchstabengitter.",
+        "l10n": {"check": "Überprüfen", "tryAgain": "Wiederholen", "showSolution": "Lösung anzeigen",
+                 "found": "@found von @totalWords gefunden", "timeSpent": "Benötigte Zeit",
+                 "score": "Du hast @score von @total Punkten erreicht", "wordListHeader": "Finde die Wörter"},
+    },
+}
 FILE_TYPES = {"image", "file", "video", "audio"}
 
 
@@ -91,10 +101,16 @@ def main():
         sem = json.load(open(os.path.join(a.sem, m + ".json"), encoding="utf-8"))
         labels["en"][m] = defaults(sem, [])
         p = os.path.join(a.lang, m + ".de.json")
-        de = json.load(open(p, encoding="utf-8")).get("semantics", []) if os.path.exists(p) else []
-        if not de:
+        try:
+            de = json.load(open(p, encoding="utf-8")).get("semantics", []) if os.path.exists(p) else []
+        except (ValueError, AttributeError):
+            print(f"WARN: Sprachdatei für {m} unlesbar – Englisch", file=sys.stderr)
+            de = []
+        if not de and m not in MANUAL_DE:
             print(f"WARN: keine deutsche Sprachdatei für {m}", file=sys.stderr)
         labels["de"][m] = defaults(sem, de)
+        for k, v in MANUAL_DE.get(m, {}).items():
+            labels["de"][m][k] = {**labels["de"][m].get(k, {}), **v} if isinstance(v, dict) else v
 
     data = {"versions": default_versions(), "labels": labels}
     js = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
