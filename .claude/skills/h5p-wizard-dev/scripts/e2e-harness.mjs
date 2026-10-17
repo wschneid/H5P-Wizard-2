@@ -298,12 +298,52 @@ const CASES = [
       return ok ? null : 'Buch fehlerhaft: ' + JSON.stringify({ main: r.h5p?.mainLibrary, deps: d.map(x => x.machineName), c: JSON.stringify(c).slice(0, 300) }); }, false,
     // eigene Column-Version aus dem vorigen Fall zurücksetzen: Interactive Book 1.15 erlaubt nur Column 1.22
     () => { const s = document.getElementById('tpl-source'); if (s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } const i = document.querySelector('input.lib-ver[data-lib="H5P.Column"]'); i.value = ''; i.dispatchEvent(new Event('change', { bubbles: true })); }],
+  // ----- V.1.4: Bingo und Structure Strip -----
+  ['eingebaut-bingo', 't-bingo', { taskDescription: 'Hör zu & markiere.', items: [{ word: 'Chloro*phyll*', clue: 'Grüner Farbstoff' }, { word: 'Sauer\nstoff', clue: 'Gas, das frei wird' }, { word: 'Licht', clue: 'Energiequelle' }, { word: 'Wasser', clue: 'H2O' }] },
+    r => { const c = r.content || {}; const ok = r.h5p?.mainLibrary === 'H5P.Bingo' && c.mode === 'words' && c.words === 'Chlorophyll\nSauer stoff\nLicht\nWasser' && c.size === 3
+      && c.behaviour?.joker === true && c.behaviour?.shuffleOnRetry === true && c.taskDescription === '<div>Hör zu &amp; markiere.</div>' && c.tryAgain === 'Wiederholen' && r.files?.length === 2
+      && /Vorleseliste herunterladen/.test(r.status || '') && /Begriffe für ein 3 × 3-Spielfeld/.test(r.validation || '');
+      return ok ? null : 'Bingo: ' + JSON.stringify({ main: r.h5p?.mainLibrary, c, status: r.status, v: r.validation }).slice(0, 400); }, false,
+    () => { const s = document.getElementById('tpl-source'); if (s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } document.getElementById('bingo-size').value = '3'; document.getElementById('bingo-joker').checked = true; }],
+  ['bingo-wortliste-ohne-hinweise', 't-bingo', { words: ['Alpha', 'Beta', 'Gamma', 'Delta'] },
+    r => { const c = r.content || {}; return (c.words === 'Alpha\nBeta\nGamma\nDelta' && c.behaviour?.joker === false && c.size === 4 && !/Vorleseliste herunterladen/.test(r.status || '') && /ohne "clue"/.test(r.validation || '') && /mehrfach vor/.test(r.validation || ''))
+      ? null : 'Wortliste: ' + JSON.stringify({ c, status: r.status, v: r.validation }).slice(0, 300); }, false,
+    () => { document.getElementById('bingo-size').value = '4'; }],
+  ['bingo-validierung-sperrt', 't-bingo', { items: [{ word: 'A', clue: 'x' }] },
+    r => (r.packBtnDisabled && /Mindestens 3 Begriffe/.test(r.validation || '')) ? null : 'zu wenige Begriffe nicht gesperrt: ' + r.validation],
+  ['eingebaut-structure-strip', 't-strip', { taskDescription: 'Erörtere <X>.', sections: [
+      { title: 'Einleitung', hints: ['Anlass nennen', 'Satzanfang: „Immer wieder …“'], weight: 1 }, { title: 'Hauptteil', hints: 'Argumente', weight: '3' }, { title: 'Schluss', weight: 0 }] },
+    r => { const c = r.content || {}, s = c.sections || []; const ok = r.h5p?.mainLibrary === 'H5P.StructureStrip' && s.length === 3 && s[0].description === '<ul><li>Anlass nennen</li><li>Satzanfang: „Immer wieder …“</li></ul>'
+      && s[1].description === '<div>Argumente</div>' && s[1].weight === 3 && s[2].weight === 1 && !('description' in s[2]) && s[0].colorBackground && s[0].colorText === '#1c1c1c'
+      && c.taskDescription === '<div>Erörtere &lt;X&gt;.</div>' && c.behaviour?.textLengthMin === 1300 && c.behaviour?.textLengthMax === 3000 && c.behaviour?.feedbackMode === 'whileTyping'
+      && c.l10n?.checkAnswer === 'Überprüfen' && r.files?.length === 2 && /keine Hinweise/.test(r.validation || '');
+      return ok ? null : 'Structure Strip: ' + JSON.stringify({ main: r.h5p?.mainLibrary, c, v: r.validation }).slice(0, 500); }, false,
+    () => { document.getElementById('strip-live').checked = true; }],
 ];
 for (const [name, typeId, json, check, known, setup] of CASES) {
   let r;
   try { r = await pack(name, typeId, json, setup); } catch (e) { r = { error: e.message }; }
   const err = r.error ? r.error : check(r);
   record(`pack:${name}`, !err, err || '', !!known);
+}
+
+// ---------- 2b) Bingo: Vorleseliste als Begleitdatei ----------
+if (await page.$('#t-bingo')) {
+  let err = null;
+  try {
+    const r = await pack('bingo-vorleseliste', 't-bingo', { items: [{ word: 'Merkur', clue: 'Innerster Planet' }, { word: 'Venus', clue: 'Zweiter Planet' }, { word: 'Erde', clue: '' }] });
+    const btn = await page.$('#packStatus button[data-extra]');
+    if (!r.content || !btn) err = 'kein Knopf „Vorleseliste herunterladen“: ' + r.status;
+    else {
+      const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), btn.click()]);
+      const file = path.join(OUT, 'bingo-vorleseliste.txt');
+      await dl.saveAs(file);
+      const txt = fs.readFileSync(file, 'utf8');
+      if (!/Vorleseliste\.txt$/.test(dl.suggestedFilename())) err = 'Dateiname: ' + dl.suggestedFilename();
+      else if (!/\[ \] 1\. Innerster Planet\r\n\s+Lösung: Merkur/.test(txt) || !/\(kein Hinweis\)/.test(txt) || !/Alle Begriffe: Erde · Merkur · Venus/.test(txt)) err = 'Inhalt: ' + txt.slice(0, 300);
+    }
+  } catch (e) { err = e.message; }
+  record('pack:bingo-vorleseliste', !err, err || '');
 }
 
 // ---------- 2a) Vertragstest mit zusätzlichen Optionen (Video, Quiz, Page) ----------
