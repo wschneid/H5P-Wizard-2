@@ -33,6 +33,7 @@ MACHINES = [
     "H5P.SortParagraphs", "H5P.GuessTheAnswer", "H5P.Summary", "H5P.InteractiveVideo", "H5P.Column",
     "H5P.Accordion", "H5P.Crossword", "H5P.Timeline", "H5P.AdvancedText", "H5P.Image",
     "H5P.Essay", "H5P.FindTheWords", "H5P.Text", "H5P.InteractiveBook", "H5P.CoursePresentation",
+    "H5P.Bingo", "H5P.StructureStrip", "H5P.SpeakTheWordsSet", "H5P.SpeakTheWords",
 ]
 # Bibliotheken ohne (vollständige) deutsche Sprachdatei: Übersetzung von Hand (Platzhalter wie @found unverändert)
 MANUAL_DE = {

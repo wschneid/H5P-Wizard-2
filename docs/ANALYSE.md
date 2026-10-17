@@ -256,13 +256,15 @@ Bewertet nach: Kann eine KI den Inhalt rein textbasiert erzeugen? Unterrichtsnut
 | **Question Set erweitern** um Essay | QuestionSet erlaubt H5P.Essay | ★★★ | ★★ | gering | hoch |
 | **Interactive Video erweitern** (Blanks, Drag Text, SCS, Summary, Text-Einblendungen, Lesezeichen, Abschluss-Summary) | IV 1.28 | ★★★ | ★★★ | mittel | hoch |
 | **Branching Scenario** (Fallbeispiele, Dilemmata – Ethik, Gemeinschaftskunde, Berufliche Schule) | H5P.BranchingScenario 1.11 | ★★☆ | ★★★ | hoch (Graph-Struktur) | mittel |
-| **Structure Strip** (Schreibgerüst: Einleitung/Hauptteil/Schluss mit Hinweisen) | H5P.StructureStrip 1.0/1.1 | ★★★ | ★★ (Deutsch, Fremdsprachen) | gering | mittel |
+| ~~**Structure Strip**~~ (Schreibgerüst: Einleitung/Hauptteil/Schluss mit Hinweisen) | H5P.StructureStrip 1.0/1.1 | ★★★ | ★★ (Deutsch, Fremdsprachen) | gering | ✅ umgesetzt in V.1.4 |
+| ~~**Bingo**~~ (Begriffe-Bingo: Lehrkraft liest Hinweise vor, Lernende markieren; Vorleseliste als Begleitdatei) | H5P.Bingo 0.3 (otacke, kein Release-Zweig – Verfügbarkeit in Moodle prüfen) | ★★★ | ★★ (Einstieg, Wiederholung, Vokabeln, Kopfrechnen) | gering | ✅ umgesetzt in V.1.4 |
 | **Documentation Tool / Questionnaire** (Reflexion, Lerntagebuch, Exit-Ticket) | 1.8 / 1.3 | ★★★ | ★★ | gering | mittel |
 | **Dictation** (Diktat) | H5P.Dictation 1.3/1.4 | ★☆☆ (braucht Audio) | ★★★ (Sprachen, DaZ) | mittel – Audio per TTS im Browser erzeugbar | später |
 | **Memory Game** | H5P.MemoryGame 1.3 | ★☆☆ (braucht Bilder) | ★★ | mittel – Bild-Upload existiert schon | später |
 | **Chart** (Diagramm aus Daten) | H5P.Chart 1.2 | ★★☆ | ★ | gering | optional |
 | **Course Presentation** | 1.27 | ★☆☆ (Layout/Koordinaten) | ★★ | hoch | eher nicht |
-| Image Hotspots, Drag and Drop, Image Pairing/Sequencing, Speak the Words | – | ✗ (Bild-/Koordinatenarbeit bzw. nur Chrome) | – | – | nicht sinnvoll |
+| ~~**Speak the Words Set**~~ (Sprechaufgaben: Übersetzen, Vorlesen, kurze Antworten) | H5P.SpeakTheWordsSet 1.3 / H5P.SpeakTheWords 1.5 | ★★★ (nur Text) | ★★ (Fremdsprachen, DaZ, Aussprache) | gering | ✅ umgesetzt in V.1.4 – Spracherkennung des Browsers (Chrome/Edge/Safari, nicht Firefox) überträgt die Aufnahme an den Browser-Hersteller → Datenschutz vor dem Einsatz klären |
+| Image Hotspots, Drag and Drop, Image Pairing/Sequencing | – | ✗ (Bild-/Koordinatenarbeit) | – | – | nicht sinnvoll |
 
 ---
 
@@ -379,7 +381,7 @@ python3 .claude/skills/h5p-wizard-dev/scripts/validate-h5p.py mein-export.h5p --
 | **v0.10 – Robustheit** | Template-Merge (deutsche Labels), HTML-Escaping, Schema-Validierung + Korrektur-Prompt, Template-Cache-Update, JS-Bibliotheken pinnen/ersetzen, Tastaturbedienung | 2–3 Tage |
 | **v0.11 – Neue Typen** | Essay, Find the Words, Page-Bausteine erweitern, Question Set + Essay | 2 Tage |
 | **v1.0 – Ausbau** | Typ-Registry-Refactoring, Interactive Book, erweitertes Interactive Video, überarbeitete Prompts (AFB/Operatoren) | 1 Woche |
-| später | Branching Scenario, Structure Strip, Dictation (TTS), Memory | – |
+| später | Branching Scenario, Dictation (TTS), Memory (Structure Strip und Bingo: umgesetzt in V.1.4) | – |
 
 ---
 
