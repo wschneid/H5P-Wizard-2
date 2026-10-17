@@ -1,7 +1,6 @@
 # Checkliste: neuen Inhaltstyp im Wizard ergänzen
 
-Stand der Code-Struktur: v0.9.6 (alles in einer HTML-Datei). Wird die empfohlene Typ-Registry
-(siehe `docs/ANALYSE.md`, Abschnitt Architektur) umgesetzt, schrumpft diese Liste auf einen Registry-Eintrag.
+Stand der Code-Struktur: V.1.0 (alles in einer HTML-Datei, Typ-Registry `CONTENT_TYPES`).
 
 ## 1. Recherche (Ergebnis von h5p-library-scout)
 - [ ] Machine-Name, aktuelle Major.Minor (Hub/release **und** master), Repo
@@ -17,10 +16,9 @@ Stand der Code-Struktur: v0.9.6 (alles in einer HTML-Datei). Wird die empfohlene
 - [ ] Versionen im Template mit Recherche abgleichen
 
 ## 3. Code (HTML-Datei)
-- [ ] Radio-Button in `#typeGrid` (eindeutige `id="t-…"`, Font-Awesome-Icon, `tpl-badge`)
-- [ ] `TEMPLATE_TYPES`-Eintrag (`value`, `file`, `icon`, `label`, `defaultUrl`)
-- [ ] `typeToId`-Eintrag
-- [ ] Optionen-Panel `#opts-…` im HTML + Ein-/Ausblenden in `updateUI()` (Liste der zu versteckenden IDs ergänzen!)
+- [ ] `CONTENT_TYPES`-Eintrag: `value`, `id` (Kachel `t-<id>`), `label` (mit `<br>`), `icon`, `machine`, `defaultUrl` (leer = nur eingebaute Vorlage), `opts` (IDs der sichtbaren Optionen-Panels), ggf. `count` {label, unit} und `hints` – Kachel, `typeToId`, `COUNT_FIELDS` und Ein-/Ausblenden entstehen daraus
+- [ ] Optionen-Panel `#opts-…` im HTML (mit `label for=…`, Farben nur als `var(--…)`)
+- [ ] Bibliothek in `scripts/build-builtin-templates.py` (`MACHINES`) ergänzen und eingebaute Vorlagen neu erzeugen
 - [ ] Mengenfelder: nur eigene, sichtbare Felder auswerten – keine versteckten Felder (`#question-count`) mitlesen
 - [ ] `promptSpec()`: eigener `case` (what, amount, schema, didactics, example, wrong, checks) – Rolle, Auftrag, Quelle, Didaktik und Ausgabe ergänzt `generatePrompt()` automatisch; das `example` muss packbar sein
 - [ ] `validateData()`: eigener `case` mit Fehlern (sperren) und Hinweisen; ggf. `AFB_ITEM_TYPES` ergänzen
@@ -33,4 +31,4 @@ Stand der Code-Struktur: v0.9.6 (alles in einer HTML-Datei). Wird die empfohlene
 - [ ] Prompt im Harness geprüft (Thema/Anweisung/Basistext enthalten)
 - [ ] Packfall im Harness `CASES` ergänzt
 - [ ] `validate-h5p.py` ohne ERROR
-- [ ] manueller Upload-Test auf der Zielplattform (WordPress H5P-Plugin / Moodle) – Nutzer bitten
+- [ ] manueller Upload-Test in Moodle (Lehrkraft-Rolle) – Nutzer bitten

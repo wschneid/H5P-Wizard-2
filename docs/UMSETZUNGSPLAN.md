@@ -16,7 +16,7 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 | 2a | **V.0.10.1** | Eingebaute Vorlagen ohne Server, Bibliotheksversionen für Moodle | ✅ umgesetzt, Upload-Test offen |
 | 3 | **V.0.11** | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | ✅ umgesetzt, Praxistest mit KIs offen |
 | 4 | **V.0.12** | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | ✅ umgesetzt, Upload-Test offen |
-| 5 | V.1.0 | Architektur (Typ-Registry), Interactive Book, Barrierefreiheit, Offline/DSGVO | geplant |
+| 5 | **V.1.0** | Typ-Registry, Interactive Book, Barrierefreiheit, Eingaben merken, Dark Mode (Standard) | ✅ umgesetzt, Upload-Test offen |
 
 ---
 
@@ -124,6 +124,21 @@ Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf 
 - [ ] In Moodle prüfen, ob **H5P.Essay 1.5** und **H5P.FindTheWords 1.4** installiert sind (Website-Administration → H5P → H5P-Inhaltstypen verwalten) – sonst über den H5P-Hub nachinstallieren lassen. Für Text-Einblendungen im Video wird **H5P.Text 1.1** benötigt (meist mit Interactive Video installiert).
 - [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Essay, Find the Words, Page mit neuen Bausteinen, Video mit Lückentext.
 
-## Phase 5 – V.1.0
+## Phase 5 – V.1.0 „Architektur, Barrierefreiheit, Dark Mode“ ✅
 
-Typ-Registry (`CONTENT_TYPES`), Interactive Book, Tastaturbedienung/ARIA (Typ-Kacheln, Fach-Auswahl, Dialog), Kontraste, Formularzustand speichern, optional Offline-Einzeldatei; später Branching Scenario, Structure Strip, Dictation (TTS), Memory.
+| # | Vorhaben | Umsetzung |
+|---|---|---|
+| 1 | **Typ-Registry** | `CONTENT_TYPES` ist die einzige Liste der Inhaltstypen: Kachel (Beschriftung, Icon), Bibliothek, Server-Vorlage, sichtbare Optionen (`opts`), Mengenfeld (`count`), Tipps (`hints`). Die Typ-Kacheln, `typeToId`, `COUNT_FIELDS` und das Ein-/Ausblenden in `updateUI()` werden daraus erzeugt. Neuer Typ = Registry-Eintrag + je ein Fall in `promptSpec`, `validateData`, `mapToH5PStructure`. |
+| 2 | **Interactive Book** (H5P.InteractiveBook 1.15) | Neuer Typ: 2–10 Kapitel, jedes eine Seite aus den gewählten Page-Bausteinen (H5P.Column), optional Deckblatt mit Kurzbeschreibung; Inhaltsverzeichnis, Fortschrittsanzeige und Zusammenfassung sind eingeschaltet. Prompt, Prüfung (je Kapitel wie bei Page) und Packer nutzen den Page-Code mit. Eingebaute Vorlage ergänzt (24 Bibliotheken). |
+| 3 | **Barrierefreiheit** | Fach als normales Auswahlfeld; Typ-Kacheln per Tab und Pfeiltasten wählbar (sichtbarer Fokus); Fortschrittsschritte per Enter/Leertaste mit `aria-current`; Hilfe als Dialog (Escape schließt, Fokus kehrt zurück); alle Formularfelder beschriftet; Statusmeldungen werden vorgelesen (`aria-live`); Page-Bausteine auch per ▲/▼ verschiebbar; bessere Kontraste bei grauen Texten; reduzierte Animationen, wenn im System eingestellt. |
+| 4 | **Eingaben merken** | Die Angaben aus Schritt 1–4 (inkl. Reihenfolge der Bausteine) bleiben nach dem Neuladen erhalten – nur in diesem Browser. Basistext und KI-JSON werden nicht gespeichert. Knopf „Gespeicherte Eingaben löschen“ im Fuß. |
+| 5 | **Dark Mode als Standard** | Alle Farben laufen über Design-Variablen (hell/dunkel); dunkles Design ist voreingestellt, der Schalter ☀/☾ oben rechts wechselt und merkt sich die Wahl. Ungenutztes CSS und JavaScript entfernt. |
+
+**Testergebnis V.1.0:** E2E 144/144 (neu: Interactive Book, Tastaturbedienung, Hilfe-Dialog, Beschriftungen, Design-Umschalter, gespeicherte Eingaben); 57 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] In Moodle prüfen, ob **H5P.InteractiveBook 1.15** installiert ist. Wichtig: Das Buch verlangt genau die Column-Version, die zu seiner Version gehört (1.15 → H5P.Column 1.22). Am sichersten: ein Buch aus Moodle herunterladen und über „Versionen aus H5P-Datei übernehmen“ einlesen.
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Interactive Book mit Deckblatt.
+- [ ] Font Awesome selbst hosten (DSGVO) – braucht Zugriff auf den Server.
+
+**Später:** Branching Scenario, Structure Strip, Dictation (Sprachausgabe), Memory.

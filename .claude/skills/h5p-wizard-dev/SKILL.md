@@ -10,8 +10,9 @@ fünf Schritten (Grundlagen → Inhaltstyp → Didaktik → Prompt → Export). 
 
 | Bereich | Funktion / Konstante | Zweck |
 |---|---|---|
-| Typ-Registry | `TEMPLATE_TYPES`, `typeToId`, Radio-Buttons `#typeGrid` | Typen + Template-URLs (ws-lab.de) |
-| UI | `updateUI()` | blendet typabhängige Optionen ein |
+| Typ-Registry | `CONTENT_TYPES` (Alias `TEMPLATE_TYPES`) | einzige Typliste: Kachel, Bibliothek, Template-URL, `opts`, `count`, `hints`; `#typeGrid`, `typeToId`, `COUNT_FIELDS` werden daraus erzeugt |
+| UI | `updateUI()` | blendet die `opts` des Typs laut Registry ein; nur Sonderfälle stehen im Code |
+| Design | CSS-Variablen in `:root` / `:root[data-theme="dark"]` | keine festen Farben im HTML/JS – immer `var(--…)`; Standard dunkel |
 | Prompt | `generatePrompt()` | baut den Master-Prompt je Typ |
 | Packer | `sanitizeJSON`, `mapToH5PStructure()`, `packBtn`-Handler, `libPatches`, `findLib` | KI-JSON → `content/content.json` + `h5p.json` |
 | Cache | IndexedDB `H5PWizardCache` | Templates (.h5p) |

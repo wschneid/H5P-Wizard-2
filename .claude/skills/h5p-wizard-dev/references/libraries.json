@@ -159,7 +159,7 @@
       "repo": "h5p/h5p-interactive-book",
       "release": "1.15.1",
       "master": "1.15.1",
-      "inWizard": false
+      "inWizard": true
     },
     "H5P.CoursePresentation": {
       "repo": "h5p/h5p-course-presentation",

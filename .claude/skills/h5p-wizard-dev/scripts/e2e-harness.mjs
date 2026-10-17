@@ -94,13 +94,18 @@ await ctx.route('**/*', async route => {
   return route.fulfill({ body: '', status: 200 });
 });
 
+// Fach wählen: ab V.1.0 natives <select id="fach">, davor eigenes Auswahlfeld
+async function selectFach(pg, fach) {
+  if (await pg.$('select#fach')) await pg.selectOption('#fach', fach);
+  else { await pg.click('#fach-display'); await pg.click(`.custom-select-option[data-value="${fach}"]`); }
+}
+
 const page = await ctx.newPage();
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
 await page.goto('file://' + HTML);
 await page.selectOption('#schulart', 'Gymnasium');
-await page.click('#fach-display');
-await page.click('.custom-select-option[data-value="Biologie"]');
+await selectFach(page, 'Biologie');
 await page.selectOption('#klasse', '8');
 const typeCount = await page.$$eval('input[name="type"]', e => e.length);
 await page.waitForFunction(n => document.querySelectorAll('.type-grid label.has-template').length >= n - 1, typeCount, { timeout: 30000 })
@@ -258,6 +263,16 @@ const CASES = [
   ['eingebaut-eigene-version', 't-page', { blocks: [{ type: 'text', text: 'Hallo' }, { type: 'tf', question: 'Q', correct: 'true' }] },
     r => { const d = r.h5p?.preloadedDependencies || []; const col = d.find(x => x.machineName === 'H5P.Column'); return (col && col.majorVersion + '.' + col.minorVersion === '1.18' && d.some(x => x.machineName === 'H5P.TrueFalse') && r.files?.length === 2) ? null : 'Version/Abhängigkeiten: ' + JSON.stringify(d); }, false,
     () => { const s = document.getElementById('tpl-source'); if (s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } const i = document.querySelector('input.lib-ver[data-lib="H5P.Column"]'); i.value = '1.18'; i.dispatchEvent(new Event('change', { bubbles: true })); }],
+  ['eingebaut-buch', 't-book', { title: 'Buch', description: 'Kurzbeschreibung', chapters: [
+      { title: 'Kapitel A', blocks: [{ type: 'text', text: 'Hallo' }, { type: 'tf', question: 'Q', correct: 'true' }] },
+      { title: 'Kapitel B', blocks: [{ type: 'mc', question: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] }] },
+    r => { const c = r.content || {}, d = r.h5p?.preloadedDependencies || []; const ch = c.chapters || [];
+      const ok = r.h5p?.mainLibrary === 'H5P.InteractiveBook' && ch.length === 2 && ch.every(x => /^H5P\.Column /.test(x.library)) && ch[0].metadata?.title === 'Kapitel A'
+        && (ch[0].params?.content || []).length === 2 && c.showCoverPage === true && /Kurzbeschreibung/.test(c.bookCover?.coverDescription || '')
+        && d.some(x => x.machineName === 'H5P.Column') && d.some(x => x.machineName === 'H5P.MultiChoice') && r.files?.length === 2;
+      return ok ? null : 'Buch fehlerhaft: ' + JSON.stringify({ main: r.h5p?.mainLibrary, deps: d.map(x => x.machineName), c: JSON.stringify(c).slice(0, 300) }); }, false,
+    // eigene Column-Version aus dem vorigen Fall zurücksetzen: Interactive Book 1.15 erlaubt nur Column 1.22
+    () => { const s = document.getElementById('tpl-source'); if (s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } const i = document.querySelector('input.lib-ver[data-lib="H5P.Column"]'); i.value = ''; i.dispatchEvent(new Event('change', { bubbles: true })); }],
 ];
 for (const [name, typeId, json, check, known, setup] of CASES) {
   let r;
@@ -359,8 +374,8 @@ try {
   p2.on('pageerror', e => errs2.push(e.message));
   await p2.goto('file://' + HTML);
   await p2.selectOption('#schulart', 'Gymnasium');
-  await p2.click('#fach-display');
-  await p2.click('.custom-select-option[data-value="Biologie"]');
+  await selectFach(p2, 'Biologie');
+  record('darkmode-standard', await p2.evaluate(() => document.documentElement.dataset.theme) === 'dark', '');
   await p2.selectOption('#klasse', '8');
   await p2.evaluate(() => navigateTo(5));
   await p2.fill('#jsonIn', '{"text":"Fülle die Lücken.","questions":["Die *Sonne* scheint."]}');
@@ -371,6 +386,57 @@ try {
   record('ohne-server-standard-eingebaut', ok, ok ? '' : info + ' ' + errs2.join(' | '));
   await ctx2.close();
 } catch (e) { record('ohne-server-standard-eingebaut', false, e.message.split('\n')[0]); }
+
+// ---------- 5) Barrierefreiheit, Design-Umschalter, gespeicherte Eingaben (ab V.1.0) ----------
+if (await page.$('#themeBtn')) {
+  try {
+    await page.evaluate(() => navigateTo(1));
+    // Fortschrittsschritte per Tastatur
+    await page.focus('.progress-step[data-step="2"]');
+    await page.keyboard.press('Enter');
+    record('a11y:Schritt per Tastatur', await page.$eval('#page-2', e => e.classList.contains('active')) && await page.$eval('.progress-step[data-step="2"]', e => e.getAttribute('aria-current') === 'step'), '');
+    // Typ-Kacheln: Radios fokussierbar, Pfeiltasten wählen
+    await page.focus('#t-blanks');
+    await page.keyboard.press('ArrowRight');
+    record('a11y:Typwahl mit Pfeiltasten', await page.$eval('#t-complex-blanks', e => e.checked), '');
+    // Hilfe-Dialog: Escape schließt, Fokus kehrt zurück
+    await page.click('#helpBtn');
+    const opened = await page.$eval('#helpModal', e => e.style.display === 'block' && document.activeElement.id === 'closeModal');
+    await page.keyboard.press('Escape');
+    record('a11y:Hilfe-Dialog mit Escape', opened && await page.$eval('#helpModal', e => e.style.display === 'none' && document.activeElement.id === 'helpBtn'), '');
+    // Beschriftungen: jedes sichtbare Formularfeld hat ein Label oder aria-label
+    const unlabeled = await page.evaluate(() => Array.from(document.querySelectorAll('input, select, textarea')).filter(el => el.type !== 'hidden' && el.type !== 'file' && el.id
+      && !document.querySelector('label[for="' + el.id + '"]') && !el.getAttribute('aria-label') && !el.closest('label')).map(el => el.id));
+    record('a11y:Formularfelder beschriftet', unlabeled.length === 0, unlabeled.join(', '));
+    // Page-Bausteine per Knopf verschieben
+    await selectType('t-page');
+    await page.evaluate(() => navigateTo(3));
+    const before = await page.$$eval('#page-block-list .page-block-item', els => els.map(e => e.dataset.block));
+    await page.click('#page-block-list .page-block-item:first-child .move-btn[data-dir="1"]');
+    const after = await page.$$eval('#page-block-list .page-block-item', els => els.map(e => e.dataset.block));
+    record('a11y:Bausteine verschieben', after[0] === before[1] && after[1] === before[0], after.slice(0, 3).join(','));
+    // Design: Standard dunkel, Umschalten wird gespeichert
+    const t0 = await page.evaluate(() => document.documentElement.dataset.theme);
+    await page.click('#themeBtn');
+    const t1 = await page.evaluate(() => [document.documentElement.dataset.theme, localStorage.getItem('h5pWizard.theme')]);
+    await page.click('#themeBtn');
+    record('design:umschalten', t0 === 'dark' && t1[0] === 'light' && t1[1] === 'light', JSON.stringify([t0, t1]));
+    // Eingaben überstehen ein Neuladen; Knopf löscht sie
+    await selectType('t-timeline');
+    await page.evaluate(() => navigateTo(4));
+    await page.fill('#topic', 'GEMERKT-123');
+    await page.fill('#ref', 'NICHT-SPEICHERN');
+    await page.waitForTimeout(500);
+    await page.reload();
+    const restored = await page.evaluate(() => ({ fach: document.getElementById('fach').value, topic: document.getElementById('topic').value, ref: document.getElementById('ref').value,
+      type: document.querySelector('input[name="type"]:checked').value, timelineVisible: document.getElementById('opts-timeline').style.display === 'block', order: document.querySelector('#page-block-list .page-block-item').dataset.block }));
+    record('eingaben:wiederhergestellt', restored.fach === 'Biologie' && restored.topic === 'GEMERKT-123' && restored.ref === '' && restored.type === 'Timeline' && restored.timelineVisible && restored.order === after[0], JSON.stringify(restored));
+    await page.click('#resetFormBtn');
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(300);
+    record('eingaben:löschen', await page.evaluate(() => document.getElementById('topic').value === '' && document.getElementById('fach').value === ''), '');
+  } catch (e) { record('a11y/design/eingaben', false, e.message.split('\n')[0]); }
+}
 
 record('keine JavaScript-Fehler', pageErrors.length === 0, pageErrors.join(' | '));
 await browser.close();
