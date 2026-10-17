@@ -103,7 +103,8 @@ async function selectFach(pg, fach) {
 const page = await ctx.newPage();
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
-await page.goto('file://' + HTML);
+// ab V.1.0.1 ist die Server-Vorlage nur mit ?vorlagen=server wählbar (ältere Versionen ignorieren den Zusatz)
+await page.goto('file://' + HTML + '?vorlagen=server');
 await page.selectOption('#schulart', 'Gymnasium');
 await selectFach(page, 'Biologie');
 await page.selectOption('#klasse', '8');
@@ -263,6 +264,30 @@ const CASES = [
   ['eingebaut-eigene-version', 't-page', { blocks: [{ type: 'text', text: 'Hallo' }, { type: 'tf', question: 'Q', correct: 'true' }] },
     r => { const d = r.h5p?.preloadedDependencies || []; const col = d.find(x => x.machineName === 'H5P.Column'); return (col && col.majorVersion + '.' + col.minorVersion === '1.18' && d.some(x => x.machineName === 'H5P.TrueFalse') && r.files?.length === 2) ? null : 'Version/Abhängigkeiten: ' + JSON.stringify(d); }, false,
     () => { const s = document.getElementById('tpl-source'); if (s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } const i = document.querySelector('input.lib-ver[data-lib="H5P.Column"]'); i.value = '1.18'; i.dispatchEvent(new Event('change', { bubbles: true })); }],
+  ['eingebaut-praesentation', 't-cp', { title: 'Präsentation', slides: [
+      { title: 'Start', text: 'Leitfrage?' },
+      { title: 'Inhalt', text: 'Punkt eins\nPunkt zwei\n- Punkt drei' },
+      { title: 'Teste dich', text: 'Kurz', task: { type: 'tf', question: 'Q', correct: 'true' } },
+      { title: 'Quiz', task: { type: 'mc', question: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] } }] },
+    r => { const c = r.content || {}, d = r.h5p?.preloadedDependencies || []; const sl = c.presentation?.slides || [];
+      const libs = sl.flatMap(x => x.elements.map(e => e.action.library.split(' ')[0]));
+      const ok = r.h5p?.mainLibrary === 'H5P.CoursePresentation' && sl.length === 4 && /<h1>Start<\/h1>/.test(sl[0].elements[0].action.params.text)
+        && /<ul><li>Punkt eins<\/li>.*<li>Punkt drei<\/li><\/ul>/.test(sl[1].elements[1].action.params.text) && sl[2].elements.length === 3 && sl[3].elements[1].width === 94
+        && libs.includes('H5P.TrueFalse') && libs.includes('H5P.MultiChoice') && sl[0].keywords?.[0]?.main === 'Start' && c.override?.hideSummarySlide === false
+        && c.l10n?.slide === 'Folie' && c.l10n?.slides === 'Folien' && d.some(x => x.machineName === 'H5P.TrueFalse') && r.files?.length === 2;
+      return ok ? null : 'Präsentation fehlerhaft: ' + JSON.stringify({ main: r.h5p?.mainLibrary, deps: d.map(x => x.machineName), c: JSON.stringify(c).slice(0, 400) }); }, false, USE_BUILTIN],
+  ['eingebaut-praesentation-alle-aufgaben', 't-cp', { title: 'Alle', slides: [{ title: 'Start', text: 'Los' },
+      { title: 'MC', task: { type: 'mc', question: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] } },
+      { title: 'TF', task: { type: 'tf', question: 'A', correct: 'false', feedback: 'weil' } },
+      { title: 'Lücken', task: { type: 'blanks', taskDescription: 'Fülle', text: 'Die *Sonne* scheint.' } },
+      { title: 'Ziehen', task: { type: 'drag', taskDescription: 'Ziehe', textField: 'Der *Mond* kreist.' } },
+      { title: 'Markieren', task: { type: 'mark', taskDescription: 'Markiere', textField: 'Die *Erde* ist rund.' } },
+      { title: 'SCS', task: { type: 'scs', questions: [{ question: 'Q', answers: ['r', 'f'] }] } },
+      { title: 'Summary', task: { type: 'summary', statements: [['r', 'f', 'f']] } },
+      { title: 'Karten', text: 'Lerne', task: { type: 'cards', cards: [{ text: 'A', answer: 'B' }] } }] },
+    r => { const libs = (r.content?.presentation?.slides || []).flatMap(x => x.elements.map(e => e.action.library.split(' ')[0]));
+      const want = ['H5P.MultiChoice', 'H5P.TrueFalse', 'H5P.Blanks', 'H5P.DragText', 'H5P.MarkTheWords', 'H5P.SingleChoiceSet', 'H5P.Summary', 'H5P.Dialogcards'];
+      const miss = want.filter(w => !libs.includes(w)); return miss.length ? 'fehlt: ' + miss.join(', ') : null; }, false, USE_BUILTIN],
   ['eingebaut-buch', 't-book', { title: 'Buch', description: 'Kurzbeschreibung', chapters: [
       { title: 'Kapitel A', blocks: [{ type: 'text', text: 'Hallo' }, { type: 'tf', question: 'Q', correct: 'true' }] },
       { title: 'Kapitel B', blocks: [{ type: 'mc', question: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] }] },
@@ -287,6 +312,8 @@ for (const [name, typeId, setup, check] of [
     r => (r.content?.interactiveVideo?.assets?.interactions || []).length === 5],
   ['Quiz mit Essay', 't-qs', () => { const c = document.getElementById('qs-allow-essay'); if (c) c.checked = true; },
     r => (r.content?.questions || []).some(q => q.library.startsWith('H5P.Essay'))],
+  ['Präsentation mit allen Aufgabentypen', 't-cp', () => document.querySelectorAll('#opts-cp input[id^=cp-allow-]').forEach(c => { c.checked = true; }),
+    r => (r.content?.presentation?.slides || []).length === 3],
   ['Page mit allen Bausteinen', 't-page', () => document.querySelectorAll('#page-block-list input[type=checkbox]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); }),
     r => (r.content?.content || []).length === 13],
 ]) {
@@ -384,6 +411,14 @@ try {
   let ok = !!dl && /Eingebaute Vorlage/.test(info) && !/nicht geladen/.test(info) && errs2.length === 0;
   if (dl) { const z = await JSZip.loadAsync(fs.readFileSync(await dl.path())); const c = JSON.parse(await z.file('content/content.json').async('string')); ok = ok && c.checkAnswer === 'Überprüfen'; }
   record('ohne-server-standard-eingebaut', ok, ok ? '' : info + ' ' + errs2.join(' | '));
+  if (await p2.$('#tpl-source-wrap')) {
+    // Server-Option für Nutzer:innen ausgeblendet; früher gespeichertes "server" wird auf eingebaut zurückgesetzt
+    const hidden = await p2.$eval('#tpl-source-wrap', e => e.hidden && !e.offsetParent);
+    await p2.evaluate(() => localStorage.setItem('h5pWizard.tplSource', 'server'));
+    await p2.reload();
+    const after = await p2.evaluate(() => [document.getElementById('tpl-source').value, localStorage.getItem('h5pWizard.tplSource'), document.getElementById('tpl-source-wrap').hidden]);
+    record('server-vorlage-ausgeblendet', hidden && after[0] === 'builtin' && after[1] === 'builtin' && after[2] === true, JSON.stringify(after));
+  }
   await ctx2.close();
 } catch (e) { record('ohne-server-standard-eingebaut', false, e.message.split('\n')[0]); }
 
