@@ -79,6 +79,8 @@ const browser = await chromium.launch(fs.existsSync('/opt/pw-browsers/chromium')
   .catch(() => chromium.launch());
 const ctx = await browser.newContext({ acceptDownloads: true });
 await ctx.addInitScript(() => {
+  // Die Altfälle prüfen den Server-Vorlagen-Modus; die eingebauten Vorlagen haben eigene Fälle
+  try { if (!localStorage.getItem('h5pWizard.tplSource')) localStorage.setItem('h5pWizard.tplSource', 'server'); } catch (e) { /* ohne Speicher */ }
   window.__prompts = [];
   Object.defineProperty(navigator, 'clipboard', { value: { writeText: t => { window.__prompts.push(t); return Promise.resolve(); } } });
 });
@@ -155,6 +157,8 @@ async function pack(name, typeId, json, setup) {
   return { status, validation, file, filename: dl.suggestedFilename(), h5p: JSON.parse(await zip.file('h5p.json').async('string')), content: JSON.parse(await zip.file('content/content.json').async('string')), files: Object.keys(zip.files) };
 }
 
+// Schaltet im Wizard auf eingebaute Vorlagen um (läuft im Browser)
+const USE_BUILTIN = () => { const s = document.getElementById('tpl-source'); if (s && s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } };
 // Jeder Fall: [name, typeId, json, check(result) -> Fehlertext|null, known?, setup?]
 const CASES = [
   ['mc-mehrere-fragen', 't-mc', { questions: [1, 2, 3].map(i => ({ text: 'F' + i, answers: [{ text: 'a', correct: true }, { text: 'b', correct: false, feedback: 'nein' }] })) },
@@ -213,6 +217,16 @@ const CASES = [
   ['lizenz-autorin', 't-tf', { questions: [{ question: 'A', correct: 'true' }, { question: 'B', correct: 'false' }] },
     r => { const h = r.h5p || {}; const q = r.content?.questions?.[0]; return (h.license === 'CC BY-SA' && h.licenseVersion === '4.0' && h.authors?.[0]?.name === 'Test Person' && q?.metadata?.license === 'CC BY-SA') ? null : 'Lizenz/Autor:in fehlt: ' + JSON.stringify({ license: h.license, v: h.licenseVersion, a: h.authors, sub: q?.metadata }); }, false,
     () => { const l = document.getElementById('license'); if (l) l.value = 'CC BY-SA|4.0'; const a = document.getElementById('author'); if (a) a.value = 'Test Person'; }],
+  // ----- Eingebaute Vorlagen (ohne Bibliotheks-Code) -----
+  ['eingebaut-mc', 't-mc', { questions: [{ text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
+    r => { const d = r.h5p?.preloadedDependencies || []; const ok = r.files?.length === 2 && r.h5p?.mainLibrary === 'H5P.MultiChoice' && d.some(x => x.machineName === 'H5P.MultiChoice')
+      && r.content?.UI?.checkAnswerButton === 'Überprüfen' && /Benötigt in Moodle/.test(r.status || ''); return ok ? null : 'eingebaut fehlerhaft: ' + JSON.stringify({ files: r.files, main: r.h5p?.mainLibrary, ui: r.content?.UI, status: r.status }); }, false, USE_BUILTIN],
+  ['eingebaut-quiz-tf', 't-tf', { questions: [{ question: 'A', correct: 'true' }, { question: 'B', correct: 'false', feedback: 'x' }] },
+    r => { const d = r.h5p?.preloadedDependencies || []; const q = r.content?.questions?.[0]; const ok = r.h5p?.mainLibrary === 'H5P.QuestionSet' && d.some(x => x.machineName === 'H5P.TrueFalse')
+      && q?.params?.l10n?.trueText === 'Wahr' && r.content?.texts?.finishButton === 'Beenden' && r.content?.questions?.[1]?.params?.behaviour?.feedbackOnWrong === 'x'; return ok ? null : 'Quiz eingebaut fehlerhaft: ' + JSON.stringify(r.content).slice(0, 300); }, false, USE_BUILTIN],
+  ['eingebaut-eigene-version', 't-page', { blocks: [{ type: 'text', text: 'Hallo' }, { type: 'tf', question: 'Q', correct: 'true' }] },
+    r => { const d = r.h5p?.preloadedDependencies || []; const col = d.find(x => x.machineName === 'H5P.Column'); return (col && col.majorVersion + '.' + col.minorVersion === '1.18' && d.some(x => x.machineName === 'H5P.TrueFalse') && r.files?.length === 2) ? null : 'Version/Abhängigkeiten: ' + JSON.stringify(d); }, false,
+    () => { const s = document.getElementById('tpl-source'); if (s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } const i = document.querySelector('input.lib-ver[data-lib="H5P.Column"]'); i.value = '1.18'; i.dispatchEvent(new Event('change', { bubbles: true })); }],
 ];
 for (const [name, typeId, json, check, known, setup] of CASES) {
   let r;
@@ -233,12 +247,36 @@ try {
   record('korrektur-prompt', /FEHLER:/.test(fix) && /Ungültiges JSON/.test(fix) && /```json/.test(fix), fix.slice(0, 120));
 } catch (e) { record('korrektur-prompt', false, e.message.split('\n')[0]); }
 try {
+  // ab V.0.10.1 liegt der Button im Bereich "Vorlagen & Bibliotheksversionen" (Server-Modus)
+  await page.evaluate(() => { const d = document.getElementById('tpl-settings'); if (d) d.open = true; const s = document.getElementById('tpl-source'); if (s && s.value !== 'server') { s.value = 'server'; s.dispatchEvent(new Event('change')); } });
   await page.click('#refreshTplBtn', { timeout: 3000 });
   await page.waitForFunction(() => /aktuell|aktualisiert/.test(document.getElementById('refreshTplBtn').textContent), null, { timeout: 30000 });
   const t = (await page.$eval('#refreshTplBtn', b => b.textContent)).trim();
   record('templates-aktualisieren', !/nicht erreichbar/.test(t), t);
   record('template-stand-angezeigt', /Stand/.test(await page.$eval('#activeTemplateInfo', e => e.textContent)), '');
 } catch (e) { record('templates-aktualisieren', false, e.message.split('\n')[0]); }
+
+// ---------- 4) Eingebaute Vorlagen ohne erreichbaren Server (frischer Browser, Standard-Einstellung) ----------
+try {
+  const ctx2 = await browser.newContext({ acceptDownloads: true });
+  await ctx2.route('**/*', route => route.request().url().startsWith('file:') ? route.continue() : route.fulfill({ status: 404, body: '' }));
+  const p2 = await ctx2.newPage();
+  const errs2 = [];
+  p2.on('pageerror', e => errs2.push(e.message));
+  await p2.goto('file://' + HTML);
+  await p2.selectOption('#schulart', 'Gymnasium');
+  await p2.click('#fach-display');
+  await p2.click('.custom-select-option[data-value="Biologie"]');
+  await p2.selectOption('#klasse', '8');
+  await p2.evaluate(() => navigateTo(5));
+  await p2.fill('#jsonIn', '{"text":"Fülle die Lücken.","questions":["Die *Sonne* scheint."]}');
+  const info = (await p2.$eval('#activeTemplateInfo', e => e.textContent)).trim();
+  const [dl] = await Promise.all([p2.waitForEvent('download', { timeout: 10000 }).catch(() => null), p2.click('#packBtn', { timeout: 3000 })]);
+  let ok = !!dl && /Eingebaute Vorlage/.test(info) && !/nicht geladen/.test(info) && errs2.length === 0;
+  if (dl) { const z = await JSZip.loadAsync(fs.readFileSync(await dl.path())); const c = JSON.parse(await z.file('content/content.json').async('string')); ok = ok && c.checkAnswer === 'Überprüfen'; }
+  record('ohne-server-standard-eingebaut', ok, ok ? '' : info + ' ' + errs2.join(' | '));
+  await ctx2.close();
+} catch (e) { record('ohne-server-standard-eingebaut', false, e.message.split('\n')[0]); }
 
 record('keine JavaScript-Fehler', pageErrors.length === 0, pageErrors.join(' | '));
 await browser.close();

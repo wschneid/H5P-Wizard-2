@@ -13,6 +13,7 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 |---|---|---|---|
 | 1 | **V.0.9.7** | Fehler beheben, die Inhalte verlieren oder ungültige Pakete erzeugen | ✅ umgesetzt, Upload-Test offen |
 | 2 | **V.0.10** | Robuster Export: Template-Merge, Validierung, Korrektur-Prompt | ✅ umgesetzt, Upload-Test offen |
+| 2a | **V.0.10.1** | Eingebaute Vorlagen ohne Server, Bibliotheksversionen für Moodle | ✅ umgesetzt, Upload-Test offen |
 | 3 | V.0.11 | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | geplant |
 | 4 | V.0.12 | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | geplant |
 | 5 | V.1.0 | Architektur (Typ-Registry), Interactive Book, Barrierefreiheit, Offline/DSGVO | geplant |
@@ -69,6 +70,23 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 - [ ] Font Awesome selbst hosten (DSGVO): Dateien von fontawesome.com nach `ws-lab.de/wp-content/uploads/…` legen und den `<link>` umstellen – braucht Zugriff auf den Server. Die Prüfsumme (SRI) für cdnjs konnte aus der Testumgebung nicht verifiziert werden.
 - [ ] Interactive Video: Positionen/Größe der Fragen – nur mit echter Darstellung in Moodle sinnvoll zu justieren (x/y in %, Breite/Höhe in em); bisher x = y = 50 %.
 - [ ] Die WordPress-Bibliotheksablage `ws-lab.de/wp-content/uploads/2026/Libs/` (jszip, FileSaver) wird nicht mehr benötigt.
+
+## Zwischenschritt – V.0.10.1 „Eingebaute Vorlagen“ ✅
+
+Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf der Vorlagen auf ws-lab.de abhängig.
+
+| Vorhaben | Umsetzung |
+|---|---|
+| Vorlagen ohne Server | Neue Standard-Einstellung **„Eingebaut – ohne Bibliotheks-Code“**: Das Paket enthält nur `h5p.json` + `content.json`. Beschriftungen und Standardeinstellungen (Deutsch; bei Fach Englisch englisch) für 20 Bibliotheken sind eingebettet (36 KB), automatisch erzeugt aus den offiziellen `semantics.json` + `language/de.json` (`scripts/build-builtin-templates.py`). Keine Downloads, keine Ladefehler. |
+| Passend zu Moodle | Lehrkräfte können ohnehin nur Inhalte mit bereits installierten Bibliotheken hochladen – mitgelieferter Bibliotheks-Code nützt ihnen nichts. |
+| Bibliotheksversionen | Bereich „Vorlagen & Bibliotheksversionen“: Tabelle aller Versionen mit Quelle; **„Versionen aus H5P-Datei übernehmen“** (z. B. ein aus Moodle heruntergeladener Inhalt) oder von Hand ändern. Reihenfolge: eigene Angabe > Versionen aus früher geladenen Server-Vorlagen > Standard. Nach dem Export: „Benötigt in Moodle: …“. |
+| Server-Vorlagen bleiben wählbar | „Vom Server (ws-lab.de) – mit Bibliotheks-Code“ funktioniert wie in V.0.10 (inkl. „Templates aktualisieren“). |
+
+**Testergebnis V.0.10.1:** E2E 73/73 (inkl. Test ohne erreichbaren Server); alle Pakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] In Moodle einen vorhandenen H5P-Inhalt je genutztem Inhaltstyp herunterladen und über „Versionen aus H5P-Datei übernehmen“ einlesen – dann stimmen die Versionen exakt. Standardwerte stammen aus dem GitHub-Release-Stand und können von Moodles installierten Versionen abweichen.
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle) mit eingebauten Vorlagen.
 
 ## Phase 3 – V.0.11 „Prompts“
 
