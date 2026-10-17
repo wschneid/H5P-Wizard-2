@@ -22,7 +22,8 @@ Stand der Code-Struktur: v0.9.6 (alles in einer HTML-Datei). Wird die empfohlene
 - [ ] `typeToId`-Eintrag
 - [ ] Optionen-Panel `#opts-…` im HTML + Ein-/Ausblenden in `updateUI()` (Liste der zu versteckenden IDs ergänzen!)
 - [ ] Mengenfelder: nur eigene, sichtbare Felder auswerten – keine versteckten Felder (`#question-count`) mitlesen
-- [ ] `generatePrompt()`: eigener Abschnitt **mit** Thema, Basistext, Anweisung, Didaktik-Block (nicht früh `return`en ohne diese)
+- [ ] `promptSpec()`: eigener `case` (what, amount, schema, didactics, example, wrong, checks) – Rolle, Auftrag, Quelle, Didaktik und Ausgabe ergänzt `generatePrompt()` automatisch; das `example` muss packbar sein
+- [ ] `validateData()`: eigener `case` mit Fehlern (sperren) und Hinweisen; ggf. `AFB_ITEM_TYPES` ergänzen
 - [ ] `mapToH5PStructure()`: eigener Zweig; Versionen über `findLib()`; HTML-Felder escapen; `subContentId` per `crypto.randomUUID()`
 - [ ] falls Sub-Content: `library`-String muss in den `options` der Eltern-Semantik stehen
 - [ ] `libPatches` **nicht** erweitern – Version aus Template übernehmen

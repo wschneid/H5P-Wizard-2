@@ -137,6 +137,17 @@ for (const t of TYPES) {
   }
   if (t.value === 'Multiple Choice') record('prompt:Multiple Choice: Format mit "questions"-Array', /\{"questions":\[/.test(p), '');
   record(`prompt:${t.value}: korrekter Artikel der Schulart`, !/an der Gymnasium/.test(p), '');
+  // Ab V.0.11: fester Aufbau und ein packbares Beispiel je Typ (Vertrag Prompt <-> Packer)
+  const missingSections = ['ROLLE', 'AUFTRAG', 'DIDAKTIK', 'AUSGABEFORMAT', 'SELBSTPRÜFUNG', 'AUSGABE'].filter(h => !new RegExp('## \\d+\\. ' + h).test(p));
+  record(`prompt:${t.value}: Aufbau Rolle→Ausgabe`, missingSections.length === 0, missingSections.join(', '));
+  const ex = p.match(/✅ BEISPIEL[^\n]*\n```json\n([\s\S]*?)\n```/);
+  if (!ex) record(`beispiel-packbar:${t.value}`, false, 'kein ✅ BEISPIEL im Prompt');
+  else {
+    let r;
+    try { r = await pack('beispiel-' + t.id, t.id, ex[1]); } catch (e) { r = { error: e.message }; }
+    const ok = !r.error && !r.packBtnDisabled && !!r.content;
+    record(`beispiel-packbar:${t.value}`, ok, ok ? (r.validation || '').trim() : (r.error || r.validation || r.status || ''));
+  }
 }
 
 // ---------- 2) Packing ----------
@@ -234,6 +245,46 @@ for (const [name, typeId, json, check, known, setup] of CASES) {
   const err = r.error ? r.error : check(r);
   record(`pack:${name}`, !err, err || '', !!known);
 }
+
+// ---------- 2b) Anforderungsbereiche, Leitperspektive, drei Niveaus ----------
+try {
+  await selectType('t-mc');
+  await page.evaluate(() => { document.getElementById('afb-level').value = 'mixed'; document.getElementById('leitperspektive').value = 'BNE'; navigateTo(4); });
+  await page.click('#genBtn');
+  let p = await page.evaluate(() => window.__prompts.at(-1));
+  record('prompt:AFB gemischt mit Operatoren', /40 % AFB I/.test(p) && /beurteilen/.test(p) && /"afb":"I"/.test(p) && !/Bloom/.test(p), '');
+  record('prompt:Leitperspektive', /Bildung für nachhaltige Entwicklung/.test(p), '');
+  await page.evaluate(() => { const c = document.getElementById('three-levels'); c.checked = true; c.dispatchEvent(new Event('change')); });
+  await page.click('#genBtn');
+  p = await page.evaluate(() => window.__prompts.at(-1));
+  const disabled = await page.$eval('#diff-level', e => e.disabled);
+  record('prompt:drei Niveaus', /"niveaus"/.test(p) && /"basis"/.test(p) && /"experte"/.test(p) && disabled, disabled ? '' : 'Anforderungsniveau nicht gesperrt');
+  await page.evaluate(() => { const c = document.getElementById('three-levels'); c.checked = false; c.dispatchEvent(new Event('change')); document.getElementById('afb-level').value = ''; document.getElementById('leitperspektive').value = ''; });
+
+  // Vorschau mit AFB-Verteilung
+  await page.evaluate(() => navigateTo(5));
+  const q = (t, afb) => ({ text: t, afb, answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] });
+  await page.fill('#jsonIn', JSON.stringify({ questions: [q('F1', 'I'), q('F2', 'II'), q('F3', 'III')] }));
+  const v = await page.$eval('#jsonValidationStatus', e => e.textContent);
+  record('vorschau:AFB-Verteilung', /AFB I\/II\/III: 1\/1\/1/.test(v), v.trim());
+
+  // Drei Niveaus -> drei Dateien
+  const lvl = n => ({ questions: [q(n + ' 1', 'I'), q(n + ' 2', 'II')] });
+  await page.fill('#jsonIn', JSON.stringify({ niveaus: { basis: lvl('B'), standard: lvl('S'), experte: lvl('E') } }));
+  const v3 = await page.$eval('#jsonValidationStatus', e => e.textContent);
+  const shown = await page.$eval('#niveau-wrap', e => getComputedStyle(e).display !== 'none');
+  const downloads = [];
+  const onDl = d => downloads.push(d);
+  page.on('download', onDl);
+  await page.selectOption('#niveau-select', 'all');
+  await page.click('#packBtn');
+  await page.waitForFunction(() => /Dateien wurden erstellt|Fehler/.test(document.getElementById('packStatus').textContent), null, { timeout: 15000 });
+  await page.waitForTimeout(800);
+  page.off('download', onDl);
+  const names = downloads.map(d => d.suggestedFilename());
+  record('niveaus:drei Dateien', /3 Niveaus erkannt/.test(v3) && shown && names.length === 3 && names.some(n => /Basis/.test(n)) && names.some(n => /Experte/.test(n)), names.join(', ') + ' | ' + v3.trim().slice(0, 80));
+  if (downloads[0]) await downloads[0].saveAs(path.join(OUT, 'pack-niveau-basis.h5p'));
+} catch (e) { record('afb/niveaus', false, e.message.split('\n')[0]); }
 
 // ---------- 3) Korrektur-Prompt, Template-Aktualisierung ----------
 try {

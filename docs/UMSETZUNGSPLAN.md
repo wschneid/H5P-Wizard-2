@@ -14,7 +14,7 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 | 1 | **V.0.9.7** | Fehler beheben, die Inhalte verlieren oder ungültige Pakete erzeugen | ✅ umgesetzt, Upload-Test offen |
 | 2 | **V.0.10** | Robuster Export: Template-Merge, Validierung, Korrektur-Prompt | ✅ umgesetzt, Upload-Test offen |
 | 2a | **V.0.10.1** | Eingebaute Vorlagen ohne Server, Bibliotheksversionen für Moodle | ✅ umgesetzt, Upload-Test offen |
-| 3 | V.0.11 | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | geplant |
+| 3 | **V.0.11** | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | ✅ umgesetzt, Praxistest mit KIs offen |
 | 4 | V.0.12 | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | geplant |
 | 5 | V.1.0 | Architektur (Typ-Registry), Interactive Book, Barrierefreiheit, Offline/DSGVO | geplant |
 
@@ -88,14 +88,23 @@ Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf 
 - [ ] In Moodle einen vorhandenen H5P-Inhalt je genutztem Inhaltstyp herunterladen und über „Versionen aus H5P-Datei übernehmen“ einlesen – dann stimmen die Versionen exakt. Standardwerte stammen aus dem GitHub-Release-Stand und können von Moodles installierten Versionen abweichen.
 - [ ] Upload-Test in Moodle (Lehrkraft-Rolle) mit eingebauten Vorlagen.
 
-## Phase 3 – V.0.11 „Prompts“
+## Phase 3 – V.0.11 „Prompts“ ✅
 
-1. Aufbau nach `references/prompt-guidelines.md`: Rolle → Auftrag → Quelle → Didaktik → Schema → Beispiel → stille Selbstprüfung.
-2. **Anforderungsbereiche I–III + Operatoren** (BW) neben/anstelle von Bloom; Verteilung vorgeben.
-3. Typ-spezifische Regeln nur dort, wo sie gelten (kürzere Prompts für kleinere Modelle in telli/fobizz).
-4. Option „3 Niveaus“ (Basis/Standard/Experte) in einem Durchgang.
-5. Optional: Leitperspektiven BW als Kontext.
-6. Prompt-Regressionstest: Beispiel-JSON je Typ aus dem Prompt muss packbar sein.
+| # | Vorhaben | Umsetzung |
+|---|---|---|
+| 1 | **Einheitlicher Aufbau** | Neuer Generator (`promptSettings` → `promptSpec` je Typ → `generatePrompt`). Alle 18 Typen: **1. Rolle → 2. Auftrag → 3. Quelle → 4. Didaktik → 5. Ausgabeformat → 6. Selbstprüfung (still) → 7. Ausgabe**. Anweisung der Lehrkraft steht oben im Auftrag. Jeder Typ hat ein vollständiges ✅-Beispiel mit echtem Inhalt („zeigt nur das Format“) und höchstens zwei ❌-Fehlerbilder. |
+| 2 | **Anforderungsbereiche** | Bloom ersetzt durch **AFB I–III mit BW-Operatoren** oder „gemischt 40/40/20“. Lernziel-Typ schlägt einen AFB vor. Bei Fragetypen kennzeichnet die KI jede Frage mit `"afb"`; die Vorschau zeigt die Verteilung („AFB I/II/III: 2/2/1“). |
+| 3 | **Nur passende Regeln** | Lücken-Syntax, Distraktor-Regeln, Feedback-Pflicht usw. erscheinen nur bei Typen, für die sie gelten. Prompts für Auswahltypen sind ca. 20–30 % kürzer; Prompts, die vorher zu dünn waren (Page, Accordion), sind ausführlicher. |
+| 4 | **Drei Niveaus** | Checkbox „In drei Niveaus erstellen“: Die KI liefert `{"niveaus":{"basis":…,"standard":…,"experte":…}}` (Basis AFB I, Standard I–II, Experte II–III). Prüfung je Niveau; Export als drei Dateien („Titel (Basis)“ …) oder einzeln wählbar. |
+| 5 | **Leitperspektiven BW** | Optional BNE, BTV, PG, BO, MB, VB – „wo fachlich passend, keine erzwungenen Bezüge“. |
+| 6 | **Vertragstest** | Der E2E-Test liest aus jedem erzeugten Prompt das ✅-Beispiel und packt es: 18/18 packbar, ohne Validator-Fehler. |
+| – | Weitere Korrekturen | Geschlechtergerechte Sprache und vielfältige Lebenswelten als feste Regel; Flashcards: eintippbare Kurzantworten; Mark the Words: eindeutige Kategorie; Guess the Answer: leeres, falsch strukturiertes Bildfeld entfernt (bestand seit V.0.9.6; setzte unnötig H5P.Image voraus). |
+
+**Testergebnis V.0.11:** E2E 114/114; 45 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] Praxistest der neuen Prompts mit den an der Schule genutzten KIs (z. B. telli, fobizz, ChatGPT): je 2–3 Typen erzeugen, JSON einfügen, Vorschau und Korrektur-Prompt beobachten. Besonders: Werden `"afb"`-Kennzeichnungen und die Struktur `"niveaus"` zuverlässig eingehalten?
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle), u. a. eine Datei je Niveau.
 
 ## Phase 4 – V.0.12 „Neue Inhaltstypen“
 

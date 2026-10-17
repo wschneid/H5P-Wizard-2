@@ -1,5 +1,9 @@
 # Leitlinien für die KI-Prompts des Wizards
 
+> Umgesetzt ab V.0.11 in `promptSpec()` / `generatePrompt()`. Neue Typen: eigenen `case` in `promptSpec` anlegen
+> (what, amount, schema, didactics, example, wrong, checks) – das `example` MUSS vom Packer fehlerfrei verarbeitet
+> werden; der E2E-Test prüft das automatisch („beispiel-packbar“).
+
 Ziel: Ein Prompt, den jedes gängige Modell (ChatGPT, Gemini, Claude, telli, fobizz …) zuverlässig in
 **parsebares JSON** und **didaktisch brauchbares Material** übersetzt.
 
