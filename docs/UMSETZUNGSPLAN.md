@@ -13,9 +13,10 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 |---|---|---|---|
 | 1 | **V.0.9.7** | Fehler beheben, die Inhalte verlieren oder ungültige Pakete erzeugen | ✅ umgesetzt, Upload-Test offen |
 | 2 | **V.0.10** | Robuster Export: Template-Merge, Validierung, Korrektur-Prompt | ✅ umgesetzt, Upload-Test offen |
-| 3 | V.0.11 | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | geplant |
-| 4 | V.0.12 | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | geplant |
-| 5 | V.1.0 | Architektur (Typ-Registry), Interactive Book, Barrierefreiheit, Offline/DSGVO | geplant |
+| 2a | **V.0.10.1** | Eingebaute Vorlagen ohne Server, Bibliotheksversionen für Moodle | ✅ umgesetzt, Upload-Test offen |
+| 3 | **V.0.11** | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | ✅ umgesetzt, Praxistest mit KIs offen |
+| 4 | **V.0.12** | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | ✅ umgesetzt, Upload-Test offen |
+| 5 | **V.1.0** | Typ-Registry, Interactive Book, Barrierefreiheit, Eingaben merken, Dark Mode (Standard) | ✅ umgesetzt, Upload-Test offen |
 
 ---
 
@@ -70,20 +71,74 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 - [ ] Interactive Video: Positionen/Größe der Fragen – nur mit echter Darstellung in Moodle sinnvoll zu justieren (x/y in %, Breite/Höhe in em); bisher x = y = 50 %.
 - [ ] Die WordPress-Bibliotheksablage `ws-lab.de/wp-content/uploads/2026/Libs/` (jszip, FileSaver) wird nicht mehr benötigt.
 
-## Phase 3 – V.0.11 „Prompts“
+## Zwischenschritt – V.0.10.1 „Eingebaute Vorlagen“ ✅
 
-1. Aufbau nach `references/prompt-guidelines.md`: Rolle → Auftrag → Quelle → Didaktik → Schema → Beispiel → stille Selbstprüfung.
-2. **Anforderungsbereiche I–III + Operatoren** (BW) neben/anstelle von Bloom; Verteilung vorgeben.
-3. Typ-spezifische Regeln nur dort, wo sie gelten (kürzere Prompts für kleinere Modelle in telli/fobizz).
-4. Option „3 Niveaus“ (Basis/Standard/Experte) in einem Durchgang.
-5. Optional: Leitperspektiven BW als Kontext.
-6. Prompt-Regressionstest: Beispiel-JSON je Typ aus dem Prompt muss packbar sein.
+Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf der Vorlagen auf ws-lab.de abhängig.
 
-## Phase 4 – V.0.12 „Neue Inhaltstypen“
+| Vorhaben | Umsetzung |
+|---|---|
+| Vorlagen ohne Server | Neue Standard-Einstellung **„Eingebaut – ohne Bibliotheks-Code“**: Das Paket enthält nur `h5p.json` + `content.json`. Beschriftungen und Standardeinstellungen (Deutsch; bei Fach Englisch englisch) für 20 Bibliotheken sind eingebettet (36 KB), automatisch erzeugt aus den offiziellen `semantics.json` + `language/de.json` (`scripts/build-builtin-templates.py`). Keine Downloads, keine Ladefehler. |
+| Passend zu Moodle | Lehrkräfte können ohnehin nur Inhalte mit bereits installierten Bibliotheken hochladen – mitgelieferter Bibliotheks-Code nützt ihnen nichts. |
+| Bibliotheksversionen | Bereich „Vorlagen & Bibliotheksversionen“: Tabelle aller Versionen mit Quelle; **„Versionen aus H5P-Datei übernehmen“** (z. B. ein aus Moodle heruntergeladener Inhalt) oder von Hand ändern. Reihenfolge: eigene Angabe > Versionen aus früher geladenen Server-Vorlagen > Standard. Nach dem Export: „Benötigt in Moodle: …“. |
+| Server-Vorlagen bleiben wählbar | „Vom Server (ws-lab.de) – mit Bibliotheks-Code“ funktioniert wie in V.0.10 (inkl. „Templates aktualisieren“). |
 
-Reihenfolge nach Nutzen/Aufwand (ANALYSE §7): Essay → Find the Words → Page-Bausteine (Drag/Mark the Words, Dialog Cards, Accordion, Guess the Answer, Essay) → Question Set + Essay → Interactive Video mit weiteren Interaktionen.
-Je Typ: Workflow B des Skills (`h5p-library-scout` + `h5p-prompt-engineer` parallel → `h5p-content-type-builder` → `h5p-qa-tester`), Template auf ws-lab.de bereitstellen.
+**Testergebnis V.0.10.1:** E2E 73/73 (inkl. Test ohne erreichbaren Server); alle Pakete ohne Validator-Fehler.
 
-## Phase 5 – V.1.0
+**Offen:**
+- [ ] In Moodle einen vorhandenen H5P-Inhalt je genutztem Inhaltstyp herunterladen und über „Versionen aus H5P-Datei übernehmen“ einlesen – dann stimmen die Versionen exakt. Standardwerte stammen aus dem GitHub-Release-Stand und können von Moodles installierten Versionen abweichen.
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle) mit eingebauten Vorlagen.
 
-Typ-Registry (`CONTENT_TYPES`), Interactive Book, Tastaturbedienung/ARIA (Typ-Kacheln, Fach-Auswahl, Dialog), Kontraste, Formularzustand speichern, optional Offline-Einzeldatei; später Branching Scenario, Structure Strip, Dictation (TTS), Memory.
+## Phase 3 – V.0.11 „Prompts“ ✅
+
+| # | Vorhaben | Umsetzung |
+|---|---|---|
+| 1 | **Einheitlicher Aufbau** | Neuer Generator (`promptSettings` → `promptSpec` je Typ → `generatePrompt`). Alle 18 Typen: **1. Rolle → 2. Auftrag → 3. Quelle → 4. Didaktik → 5. Ausgabeformat → 6. Selbstprüfung (still) → 7. Ausgabe**. Anweisung der Lehrkraft steht oben im Auftrag. Jeder Typ hat ein vollständiges ✅-Beispiel mit echtem Inhalt („zeigt nur das Format“) und höchstens zwei ❌-Fehlerbilder. |
+| 2 | **Anforderungsbereiche** | Bloom ersetzt durch **AFB I–III mit BW-Operatoren** oder „gemischt 40/40/20“. Lernziel-Typ schlägt einen AFB vor. Bei Fragetypen kennzeichnet die KI jede Frage mit `"afb"`; die Vorschau zeigt die Verteilung („AFB I/II/III: 2/2/1“). |
+| 3 | **Nur passende Regeln** | Lücken-Syntax, Distraktor-Regeln, Feedback-Pflicht usw. erscheinen nur bei Typen, für die sie gelten. Prompts für Auswahltypen sind ca. 20–30 % kürzer; Prompts, die vorher zu dünn waren (Page, Accordion), sind ausführlicher. |
+| 4 | **Drei Niveaus** | Checkbox „In drei Niveaus erstellen“: Die KI liefert `{"niveaus":{"basis":…,"standard":…,"experte":…}}` (Basis AFB I, Standard I–II, Experte II–III). Prüfung je Niveau; Export als drei Dateien („Titel (Basis)“ …) oder einzeln wählbar. |
+| 5 | **Leitperspektiven BW** | Optional BNE, BTV, PG, BO, MB, VB – „wo fachlich passend, keine erzwungenen Bezüge“. |
+| 6 | **Vertragstest** | Der E2E-Test liest aus jedem erzeugten Prompt das ✅-Beispiel und packt es: 18/18 packbar, ohne Validator-Fehler. |
+| – | Weitere Korrekturen | Geschlechtergerechte Sprache und vielfältige Lebenswelten als feste Regel; Flashcards: eintippbare Kurzantworten; Mark the Words: eindeutige Kategorie; Guess the Answer: leeres, falsch strukturiertes Bildfeld entfernt (bestand seit V.0.9.6; setzte unnötig H5P.Image voraus). |
+
+**Testergebnis V.0.11:** E2E 114/114; 45 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] Praxistest der neuen Prompts mit den an der Schule genutzten KIs (z. B. telli, fobizz, ChatGPT): je 2–3 Typen erzeugen, JSON einfügen, Vorschau und Korrektur-Prompt beobachten. Besonders: Werden `"afb"`-Kennzeichnungen und die Struktur `"niveaus"` zuverlässig eingehalten?
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle), u. a. eine Datei je Niveau.
+
+## Phase 4 – V.0.12 „Neue Inhaltstypen“ ✅
+
+| # | Vorhaben | Umsetzung |
+|---|---|---|
+| 1 | **Essay** (H5P.Essay 1.5) | Neuer Typ „Essay (Freitext)“: Aufgabenstellung mit Operator, Schreibimpuls, Schlüsselwörter mit Alternativen, Punkten und Feedback (Treffer/fehlt), Musterlösung; Optionen: Anzahl Schlüsselwörter, erwartete Antwortlänge (setzt Mindest-/Höchstlänge). Prüfung warnt bei fehlenden Schlüsselwörtern/Musterlösung. |
+| 2 | **Find the Words** (H5P.FindTheWords 1.4) | Neuer Typ „Suchsel“: Wörter werden in Großbuchstaben umgewandelt, Umlaute ersetzt, Leerzeichen entfernt; Füllbuchstaben enthalten alle Buchstaben der Wörter (nichts fällt auf); Option „nur waagerecht und senkrecht“. Deutsche Beschriftungen von Hand ergänzt (keine offizielle Sprachdatei). |
+| 3 | **Page: 6 neue Bausteine** | Drag the Words, Mark the Words, Freitext (Essay), Lernkarten, Denkfrage, Accordion – mit eigenen Optionen; Umsetzung identisch mit den gleichnamigen Inhaltstypen (ein Mapping). Page hat jetzt 13 Bausteine. |
+| 4 | **Question Set + Essay** | Neuer Fragetyp `essay` im Quiz. |
+| 5 | **Interactive Video** | Zusätzliche Interaktionen wählbar: Lückentext, Drag the Words, Text-Einblendung (Merksatz, H5P.Text). |
+| – | Eingebaute Vorlagen | Erweitert um H5P.Essay, H5P.FindTheWords, H5P.Text (23 Bibliotheken, 39 KB). Neue Typen haben keine Server-Vorlage und nutzen auch im Server-Modus die eingebaute Vorlage. |
+| – | Aufgeräumt | Mark the Words bekam ein unnötiges leeres Feld `distractors`. |
+
+**Testergebnis V.0.12:** E2E 130/130 (inkl. Vertragstests für Video mit allen Interaktionen, Quiz mit Essay, Page mit allen 13 Bausteinen); 55 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] In Moodle prüfen, ob **H5P.Essay 1.5** und **H5P.FindTheWords 1.4** installiert sind (Website-Administration → H5P → H5P-Inhaltstypen verwalten) – sonst über den H5P-Hub nachinstallieren lassen. Für Text-Einblendungen im Video wird **H5P.Text 1.1** benötigt (meist mit Interactive Video installiert).
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Essay, Find the Words, Page mit neuen Bausteinen, Video mit Lückentext.
+
+## Phase 5 – V.1.0 „Architektur, Barrierefreiheit, Dark Mode“ ✅
+
+| # | Vorhaben | Umsetzung |
+|---|---|---|
+| 1 | **Typ-Registry** | `CONTENT_TYPES` ist die einzige Liste der Inhaltstypen: Kachel (Beschriftung, Icon), Bibliothek, Server-Vorlage, sichtbare Optionen (`opts`), Mengenfeld (`count`), Tipps (`hints`). Die Typ-Kacheln, `typeToId`, `COUNT_FIELDS` und das Ein-/Ausblenden in `updateUI()` werden daraus erzeugt. Neuer Typ = Registry-Eintrag + je ein Fall in `promptSpec`, `validateData`, `mapToH5PStructure`. |
+| 2 | **Interactive Book** (H5P.InteractiveBook 1.15) | Neuer Typ: 2–10 Kapitel, jedes eine Seite aus den gewählten Page-Bausteinen (H5P.Column), optional Deckblatt mit Kurzbeschreibung; Inhaltsverzeichnis, Fortschrittsanzeige und Zusammenfassung sind eingeschaltet. Prompt, Prüfung (je Kapitel wie bei Page) und Packer nutzen den Page-Code mit. Eingebaute Vorlage ergänzt (24 Bibliotheken). |
+| 3 | **Barrierefreiheit** | Fach als normales Auswahlfeld; Typ-Kacheln per Tab und Pfeiltasten wählbar (sichtbarer Fokus); Fortschrittsschritte per Enter/Leertaste mit `aria-current`; Hilfe als Dialog (Escape schließt, Fokus kehrt zurück); alle Formularfelder beschriftet; Statusmeldungen werden vorgelesen (`aria-live`); Page-Bausteine auch per ▲/▼ verschiebbar; bessere Kontraste bei grauen Texten; reduzierte Animationen, wenn im System eingestellt. |
+| 4 | **Eingaben merken** | Die Angaben aus Schritt 1–4 (inkl. Reihenfolge der Bausteine) bleiben nach dem Neuladen erhalten – nur in diesem Browser. Basistext und KI-JSON werden nicht gespeichert. Knopf „Gespeicherte Eingaben löschen“ im Fuß. |
+| 5 | **Dark Mode als Standard** | Alle Farben laufen über Design-Variablen (hell/dunkel); dunkles Design ist voreingestellt, der Schalter ☀/☾ oben rechts wechselt und merkt sich die Wahl. Ungenutztes CSS und JavaScript entfernt. |
+
+**Testergebnis V.1.0:** E2E 144/144 (neu: Interactive Book, Tastaturbedienung, Hilfe-Dialog, Beschriftungen, Design-Umschalter, gespeicherte Eingaben); 57 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] In Moodle prüfen, ob **H5P.InteractiveBook 1.15** installiert ist. Wichtig: Das Buch verlangt genau die Column-Version, die zu seiner Version gehört (1.15 → H5P.Column 1.22). Am sichersten: ein Buch aus Moodle herunterladen und über „Versionen aus H5P-Datei übernehmen“ einlesen.
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Interactive Book mit Deckblatt.
+- [ ] Font Awesome selbst hosten (DSGVO) – braucht Zugriff auf den Server.
+
+**Später:** Branching Scenario, Structure Strip, Dictation (Sprachausgabe), Memory.

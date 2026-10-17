@@ -10,8 +10,9 @@ fünf Schritten (Grundlagen → Inhaltstyp → Didaktik → Prompt → Export). 
 
 | Bereich | Funktion / Konstante | Zweck |
 |---|---|---|
-| Typ-Registry | `TEMPLATE_TYPES`, `typeToId`, Radio-Buttons `#typeGrid` | Typen + Template-URLs (ws-lab.de) |
-| UI | `updateUI()` | blendet typabhängige Optionen ein |
+| Typ-Registry | `CONTENT_TYPES` (Alias `TEMPLATE_TYPES`) | einzige Typliste: Kachel, Bibliothek, Template-URL, `opts`, `count`, `hints`; `#typeGrid`, `typeToId`, `COUNT_FIELDS` werden daraus erzeugt |
+| UI | `updateUI()` | blendet die `opts` des Typs laut Registry ein; nur Sonderfälle stehen im Code |
+| Design | CSS-Variablen in `:root` / `:root[data-theme="dark"]` | keine festen Farben im HTML/JS – immer `var(--…)`; Standard dunkel |
 | Prompt | `generatePrompt()` | baut den Master-Prompt je Typ |
 | Packer | `sanitizeJSON`, `mapToH5PStructure()`, `packBtn`-Handler, `libPatches`, `findLib` | KI-JSON → `content/content.json` + `h5p.json` |
 | Cache | IndexedDB `H5PWizardCache` | Templates (.h5p) |
@@ -19,6 +20,8 @@ fünf Schritten (Grundlagen → Inhaltstyp → Didaktik → Prompt → Export). 
 **Einsatzszenario:** Wizard und Vorlagen liegen auf WordPress (ws-lab.de), die erzeugten Dateien werden in **Moodle**
 hochgeladen – meist von Lehrkräften ohne Recht, Bibliotheken zu installieren. Jede verlangte Bibliotheksversion
 muss daher in Moodle bereits installiert sein. Upload-Tests immer in Moodle mit Lehrkraft-Rolle.
+Ab V.0.10.1 ist die Standard-Vorlagenquelle **eingebaut** (Daten zwischen `/* BUILTIN_TEMPLATES:START/END */`,
+Paket ohne Bibliotheks-Code); Server-Vorlagen von ws-lab.de sind nur noch Option.
 
 Analyse & Befundliste: `docs/ANALYSE.md` (Stand 2026-10). Phasen und Status: `docs/UMSETZUNGSPLAN.md`.
 Lies beide vor größeren Änderungen. Neue Versionen entstehen als Kopie der letzten Datei mit neuer Nummer
@@ -45,6 +48,7 @@ Lies beide vor größeren Änderungen. Neue Versionen entstehen als Kopie der le
 |---|---|---|
 | `fetch-semantics.sh` | `scripts/fetch-semantics.sh --versions` / `scripts/fetch-semantics.sh <DIR> [Machine…]` | Versionen (release/master) bzw. semantics.json von GitHub |
 | `validate-h5p.py` | `python3 -I scripts/validate-h5p.py paket.h5p --semantics-dir <DIR>` | Paket gegen Spezifikation + Semantik prüfen |
+| `build-builtin-templates.py` | `python3 -I scripts/build-builtin-templates.py --sem <DIR> --lang <LANGDIR> --html "<Wizard>.html"` | Eingebaute Vorlagen (Beschriftungen de/en + Standardversionen) neu erzeugen; `<LANGDIR>/<Machine>.de.json` = `language/de.json` des Repos. Nach Versions-/Bibliotheksupdates ausführen. |
 | `e2e-harness.mjs` | `npm i --prefix <OUT> jszip@3 file-saver@2` dann `node scripts/e2e-harness.mjs --html "<Wizard>.html" --out <OUT>` | Headless-Test aller Prompts + Export-Regressionsfälle |
 
 `<DIR>`/`<OUT>` immer im Scratchpad anlegen, nicht im Repo. Die Bibliotheks-Registry liegt in

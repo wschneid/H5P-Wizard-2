@@ -38,7 +38,7 @@ const DEPS = {
   'drag-the-words': ['H5P.DragText 1.10'],
   'mark-the-words': ['H5P.MarkTheWords 1.11'],
   'multiple-choice': ['H5P.MultiChoice 1.16', 'H5P.Question 1.4'],
-  'question-set': ['H5P.QuestionSet 1.20', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11'],
+  'question-set': ['H5P.QuestionSet 1.20', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11', 'H5P.Essay 1.5'],
   'single-choice-set': ['H5P.SingleChoiceSet 1.11'],
   'true-false': ['H5P.TrueFalse 1.8'],
   'dialog-cards': ['H5P.Dialogcards 1.9'],
@@ -46,8 +46,9 @@ const DEPS = {
   'sort-paragraphs': ['H5P.SortParagraphs 0.11'],
   'guess-the-answer': ['H5P.GuessTheAnswer 1.5', 'H5P.Image 1.1'],
   'summary': ['H5P.Summary 1.10'],
-  'interactive-video': ['H5P.InteractiveVideo 1.28', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Summary 1.10'],
-  'h5p-column': ['H5P.Column 1.16', 'H5P.AdvancedText 1.1', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.Summary 1.10', 'H5P.SingleChoiceSet 1.11'],
+  'interactive-video': ['H5P.InteractiveVideo 1.28', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Summary 1.10', 'H5P.Text 1.1', 'H5P.Blanks 1.14', 'H5P.DragText 1.10'],
+  'h5p-column': ['H5P.Column 1.16', 'H5P.AdvancedText 1.1', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.Summary 1.10', 'H5P.SingleChoiceSet 1.11',
+    'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11', 'H5P.Essay 1.5', 'H5P.Dialogcards 1.9', 'H5P.GuessTheAnswer 1.5', 'H5P.Accordion 1.0'],
   'accordion': ['H5P.Accordion 1.0', 'H5P.AdvancedText 1.1'],
   'crossword': ['H5P.Crossword 0.4'],
   'timeline': ['H5P.Timeline 1.1'],
@@ -79,6 +80,8 @@ const browser = await chromium.launch(fs.existsSync('/opt/pw-browsers/chromium')
   .catch(() => chromium.launch());
 const ctx = await browser.newContext({ acceptDownloads: true });
 await ctx.addInitScript(() => {
+  // Die Altfälle prüfen den Server-Vorlagen-Modus; die eingebauten Vorlagen haben eigene Fälle
+  try { if (!localStorage.getItem('h5pWizard.tplSource')) localStorage.setItem('h5pWizard.tplSource', 'server'); } catch (e) { /* ohne Speicher */ }
   window.__prompts = [];
   Object.defineProperty(navigator, 'clipboard', { value: { writeText: t => { window.__prompts.push(t); return Promise.resolve(); } } });
 });
@@ -91,13 +94,18 @@ await ctx.route('**/*', async route => {
   return route.fulfill({ body: '', status: 200 });
 });
 
+// Fach wählen: ab V.1.0 natives <select id="fach">, davor eigenes Auswahlfeld
+async function selectFach(pg, fach) {
+  if (await pg.$('select#fach')) await pg.selectOption('#fach', fach);
+  else { await pg.click('#fach-display'); await pg.click(`.custom-select-option[data-value="${fach}"]`); }
+}
+
 const page = await ctx.newPage();
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
 await page.goto('file://' + HTML);
 await page.selectOption('#schulart', 'Gymnasium');
-await page.click('#fach-display');
-await page.click('.custom-select-option[data-value="Biologie"]');
+await selectFach(page, 'Biologie');
 await page.selectOption('#klasse', '8');
 const typeCount = await page.$$eval('input[name="type"]', e => e.length);
 await page.waitForFunction(n => document.querySelectorAll('.type-grid label.has-template').length >= n - 1, typeCount, { timeout: 30000 })
@@ -135,6 +143,17 @@ for (const t of TYPES) {
   }
   if (t.value === 'Multiple Choice') record('prompt:Multiple Choice: Format mit "questions"-Array', /\{"questions":\[/.test(p), '');
   record(`prompt:${t.value}: korrekter Artikel der Schulart`, !/an der Gymnasium/.test(p), '');
+  // Ab V.0.11: fester Aufbau und ein packbares Beispiel je Typ (Vertrag Prompt <-> Packer)
+  const missingSections = ['ROLLE', 'AUFTRAG', 'DIDAKTIK', 'AUSGABEFORMAT', 'SELBSTPRÜFUNG', 'AUSGABE'].filter(h => !new RegExp('## \\d+\\. ' + h).test(p));
+  record(`prompt:${t.value}: Aufbau Rolle→Ausgabe`, missingSections.length === 0, missingSections.join(', '));
+  const ex = p.match(/✅ BEISPIEL[^\n]*\n```json\n([\s\S]*?)\n```/);
+  if (!ex) record(`beispiel-packbar:${t.value}`, false, 'kein ✅ BEISPIEL im Prompt');
+  else {
+    let r;
+    try { r = await pack('beispiel-' + t.id, t.id, ex[1]); } catch (e) { r = { error: e.message }; }
+    const ok = !r.error && !r.packBtnDisabled && !!r.content;
+    record(`beispiel-packbar:${t.value}`, ok, ok ? (r.validation || '').trim() : (r.error || r.validation || r.status || ''));
+  }
 }
 
 // ---------- 2) Packing ----------
@@ -155,6 +174,8 @@ async function pack(name, typeId, json, setup) {
   return { status, validation, file, filename: dl.suggestedFilename(), h5p: JSON.parse(await zip.file('h5p.json').async('string')), content: JSON.parse(await zip.file('content/content.json').async('string')), files: Object.keys(zip.files) };
 }
 
+// Schaltet im Wizard auf eingebaute Vorlagen um (läuft im Browser)
+const USE_BUILTIN = () => { const s = document.getElementById('tpl-source'); if (s && s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } };
 // Jeder Fall: [name, typeId, json, check(result) -> Fehlertext|null, known?, setup?]
 const CASES = [
   ['mc-mehrere-fragen', 't-mc', { questions: [1, 2, 3].map(i => ({ text: 'F' + i, answers: [{ text: 'a', correct: true }, { text: 'b', correct: false, feedback: 'nein' }] })) },
@@ -174,6 +195,25 @@ const CASES = [
     r => { const c = r.content || {}; return (c.answer === 'Umdrehen' && !c.title && !c.description && c.dialogs?.length === 1) ? null : 'Merge fehlerhaft: ' + JSON.stringify(c).slice(0, 200); }],
   ['mc-behaviour-type', 't-mc', { text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] },
     r => r.content?.behaviour?.type ? null : 'behaviour.type fehlt (singleAnswer ist veraltet)'],
+  // ----- Phase 4: neue Typen und Bausteine -----
+  ['essay', 't-essay', { taskDescription: 'Erkläre die Photosynthese.', keywords: [{ keyword: 'Licht', alternatives: ['Sonnenlicht'], points: 2, feedbackMissed: 'Was braucht die Pflanze?' }, 'Chlorophyll'], sampleSolution: 'Pflanzen nutzen Licht.\nSie bilden Zucker.' },
+    r => { const c = r.content || {}; const ok = r.h5p?.mainLibrary === 'H5P.Essay' && c.keywords?.length === 2 && c.keywords[0].options.points === 2 && c.keywords[0].alternatives[0] === 'Sonnenlicht'
+      && /<p>Pflanzen nutzen Licht.<\/p><p>Sie bilden Zucker.<\/p>/.test(c.solution?.sample || '') && c.behaviour?.minimumLength > 0 && c.checkAnswer === 'Überprüfen'; return ok ? null : 'Essay: ' + JSON.stringify(c).slice(0, 300); }],
+  ['find-the-words', 't-ftw', { taskDescription: 'Finde die Begriffe.', words: ['Chlorophyll', 'Größe', 'Blatt grün', 'X'] },
+    r => { const c = r.content || {}; const o = c.behaviour?.orientations || {}; const ok = r.h5p?.mainLibrary === 'H5P.FindTheWords' && c.wordList === 'CHLOROPHYLL,GROESSE,BLATTGRUEN' && o.diagonal === false && o.vertical === true && c.l10n?.check === 'Überprüfen';
+      return ok ? null : 'Find the Words: ' + JSON.stringify(c).slice(0, 300); }, false, () => { document.getElementById('ftw-easy').checked = true; }],
+  ['page-neue-bausteine', 't-page', { blocks: [
+      { type: 'drag', taskDescription: 'Ziehe.', textField: 'Die *Sonne* scheint.' }, { type: 'mark', taskDescription: 'Verben', textField: 'Er *läuft*.' },
+      { type: 'essay', taskDescription: 'Erkläre.', keywords: [{ keyword: 'Licht' }] }, { type: 'cards', cards: [{ text: 'A', answer: 'B' }] },
+      { type: 'guess', taskDescription: 'Warum?', solutionText: 'Darum.' }, { type: 'accordion', panels: [{ title: 'T', text: 'Text' }] }] },
+    r => { const libs = (r.content?.content || []).map(b => b.content.library.split(' ')[0]); const want = ['H5P.DragText', 'H5P.MarkTheWords', 'H5P.Essay', 'H5P.Dialogcards', 'H5P.GuessTheAnswer', 'H5P.Accordion'];
+      const deps = (r.h5p?.preloadedDependencies || []).map(d => d.machineName); return (want.every((w, i) => libs[i] === w) && want.every(w => deps.includes(w))) ? null : 'Bausteine: ' + libs.join(', ') + ' | deps: ' + deps.join(', '); }],
+  ['quiz-mit-essay', 't-qs', { questions: [{ type: 'mc', text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }, { type: 'essay', taskDescription: 'Begründe.', keywords: [{ keyword: 'Grund' }] }] },
+    r => { const q = r.content?.questions?.[1]; return (q?.library?.startsWith('H5P.Essay') && q.params?.keywords?.[0]?.keyword === 'Grund') ? null : 'Essay im Quiz fehlt: ' + JSON.stringify(q).slice(0, 200); }],
+  ['video-neue-interaktionen', 't-video', { interactions: [{ time: 20, type: 'text', text: 'Merke: X.' }, { time: 60, type: 'blanks', text: 'Die *Sonne* ist ein Stern.' }, { time: 120, type: 'drag', textField: 'Der *Mond* kreist.' }] },
+    r => { const it = r.content?.interactiveVideo?.assets?.interactions || []; const libs = it.map(i => i.action.library.split(' ')[0]);
+      const ok = libs.join(',') === 'H5P.Text,H5P.Blanks,H5P.DragText' && /\*Sonne\*/.test(it[1].action.params.questions[0]) && /Merke/.test(it[0].action.params.text); return ok ? null : 'Video: ' + libs.join(', '); }, false,
+    () => { document.getElementById('youtube-url').value = 'https://youtu.be/dQw4w9WgXcQ'; }],
   ['mehrere-versionen-im-template', 't-mc', { questions: [{ text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
     r => { const q = r.h5p?.preloadedDependencies?.find(d => d.machineName === 'H5P.Question'); return q && `${q.majorVersion}.${q.minorVersion}` === '1.4' ? null : 'h5p.json-Version ersetzt, obwohl im Template vorhanden: ' + JSON.stringify(q); }],
   ['tf-feedback', 't-tf', { question: 'Pflanzen atmen nur nachts.', correct: 'false', feedback: 'Zellatmung läuft immer.' },
@@ -213,6 +253,26 @@ const CASES = [
   ['lizenz-autorin', 't-tf', { questions: [{ question: 'A', correct: 'true' }, { question: 'B', correct: 'false' }] },
     r => { const h = r.h5p || {}; const q = r.content?.questions?.[0]; return (h.license === 'CC BY-SA' && h.licenseVersion === '4.0' && h.authors?.[0]?.name === 'Test Person' && q?.metadata?.license === 'CC BY-SA') ? null : 'Lizenz/Autor:in fehlt: ' + JSON.stringify({ license: h.license, v: h.licenseVersion, a: h.authors, sub: q?.metadata }); }, false,
     () => { const l = document.getElementById('license'); if (l) l.value = 'CC BY-SA|4.0'; const a = document.getElementById('author'); if (a) a.value = 'Test Person'; }],
+  // ----- Eingebaute Vorlagen (ohne Bibliotheks-Code) -----
+  ['eingebaut-mc', 't-mc', { questions: [{ text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
+    r => { const d = r.h5p?.preloadedDependencies || []; const ok = r.files?.length === 2 && r.h5p?.mainLibrary === 'H5P.MultiChoice' && d.some(x => x.machineName === 'H5P.MultiChoice')
+      && r.content?.UI?.checkAnswerButton === 'Überprüfen' && /Benötigt in Moodle/.test(r.status || ''); return ok ? null : 'eingebaut fehlerhaft: ' + JSON.stringify({ files: r.files, main: r.h5p?.mainLibrary, ui: r.content?.UI, status: r.status }); }, false, USE_BUILTIN],
+  ['eingebaut-quiz-tf', 't-tf', { questions: [{ question: 'A', correct: 'true' }, { question: 'B', correct: 'false', feedback: 'x' }] },
+    r => { const d = r.h5p?.preloadedDependencies || []; const q = r.content?.questions?.[0]; const ok = r.h5p?.mainLibrary === 'H5P.QuestionSet' && d.some(x => x.machineName === 'H5P.TrueFalse')
+      && q?.params?.l10n?.trueText === 'Wahr' && r.content?.texts?.finishButton === 'Beenden' && r.content?.questions?.[1]?.params?.behaviour?.feedbackOnWrong === 'x'; return ok ? null : 'Quiz eingebaut fehlerhaft: ' + JSON.stringify(r.content).slice(0, 300); }, false, USE_BUILTIN],
+  ['eingebaut-eigene-version', 't-page', { blocks: [{ type: 'text', text: 'Hallo' }, { type: 'tf', question: 'Q', correct: 'true' }] },
+    r => { const d = r.h5p?.preloadedDependencies || []; const col = d.find(x => x.machineName === 'H5P.Column'); return (col && col.majorVersion + '.' + col.minorVersion === '1.18' && d.some(x => x.machineName === 'H5P.TrueFalse') && r.files?.length === 2) ? null : 'Version/Abhängigkeiten: ' + JSON.stringify(d); }, false,
+    () => { const s = document.getElementById('tpl-source'); if (s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } const i = document.querySelector('input.lib-ver[data-lib="H5P.Column"]'); i.value = '1.18'; i.dispatchEvent(new Event('change', { bubbles: true })); }],
+  ['eingebaut-buch', 't-book', { title: 'Buch', description: 'Kurzbeschreibung', chapters: [
+      { title: 'Kapitel A', blocks: [{ type: 'text', text: 'Hallo' }, { type: 'tf', question: 'Q', correct: 'true' }] },
+      { title: 'Kapitel B', blocks: [{ type: 'mc', question: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] }] },
+    r => { const c = r.content || {}, d = r.h5p?.preloadedDependencies || []; const ch = c.chapters || [];
+      const ok = r.h5p?.mainLibrary === 'H5P.InteractiveBook' && ch.length === 2 && ch.every(x => /^H5P\.Column /.test(x.library)) && ch[0].metadata?.title === 'Kapitel A'
+        && (ch[0].params?.content || []).length === 2 && c.showCoverPage === true && /Kurzbeschreibung/.test(c.bookCover?.coverDescription || '')
+        && d.some(x => x.machineName === 'H5P.Column') && d.some(x => x.machineName === 'H5P.MultiChoice') && r.files?.length === 2;
+      return ok ? null : 'Buch fehlerhaft: ' + JSON.stringify({ main: r.h5p?.mainLibrary, deps: d.map(x => x.machineName), c: JSON.stringify(c).slice(0, 300) }); }, false,
+    // eigene Column-Version aus dem vorigen Fall zurücksetzen: Interactive Book 1.15 erlaubt nur Column 1.22
+    () => { const s = document.getElementById('tpl-source'); if (s.value !== 'builtin') { s.value = 'builtin'; s.dispatchEvent(new Event('change')); } const i = document.querySelector('input.lib-ver[data-lib="H5P.Column"]'); i.value = ''; i.dispatchEvent(new Event('change', { bubbles: true })); }],
 ];
 for (const [name, typeId, json, check, known, setup] of CASES) {
   let r;
@@ -220,6 +280,69 @@ for (const [name, typeId, json, check, known, setup] of CASES) {
   const err = r.error ? r.error : check(r);
   record(`pack:${name}`, !err, err || '', !!known);
 }
+
+// ---------- 2a) Vertragstest mit zusätzlichen Optionen (Video, Quiz, Page) ----------
+for (const [name, typeId, setup, check] of [
+  ['Video mit allen Interaktionen', 't-video', () => ['blanks', 'drag', 'text'].forEach(t => { const c = document.getElementById('iv-allow-' + t); if (c) c.checked = true; }),
+    r => (r.content?.interactiveVideo?.assets?.interactions || []).length === 5],
+  ['Quiz mit Essay', 't-qs', () => { const c = document.getElementById('qs-allow-essay'); if (c) c.checked = true; },
+    r => (r.content?.questions || []).some(q => q.library.startsWith('H5P.Essay'))],
+  ['Page mit allen Bausteinen', 't-page', () => document.querySelectorAll('#page-block-list input[type=checkbox]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); }),
+    r => (r.content?.content || []).length === 13],
+]) {
+  try {
+    await selectType(typeId);
+    await page.evaluate(setup);
+    await page.evaluate(() => navigateTo(4));
+    await page.click('#genBtn');
+    const p = await page.evaluate(() => window.__prompts.at(-1));
+    const m = p.match(/✅ BEISPIEL[^\n]*\n```json\n([\s\S]*?)\n```/);
+    if (!m) { record('beispiel-packbar:' + name, false, 'kein Beispiel'); continue; }
+    const r = await pack('beispiel-extra-' + typeId, typeId, m[1]);
+    const ok = !r.packBtnDisabled && !!r.content && check(r);
+    record('beispiel-packbar:' + name, ok, ok ? (r.validation || '').trim() : (r.validation || r.status || JSON.stringify(r.content).slice(0, 150)));
+  } catch (e) { record('beispiel-packbar:' + name, false, e.message.split('\n')[0]); }
+}
+
+// ---------- 2b) Anforderungsbereiche, Leitperspektive, drei Niveaus ----------
+try {
+  await selectType('t-mc');
+  await page.evaluate(() => { document.getElementById('afb-level').value = 'mixed'; document.getElementById('leitperspektive').value = 'BNE'; navigateTo(4); });
+  await page.click('#genBtn');
+  let p = await page.evaluate(() => window.__prompts.at(-1));
+  record('prompt:AFB gemischt mit Operatoren', /40 % AFB I/.test(p) && /beurteilen/.test(p) && /"afb":"I"/.test(p) && !/Bloom/.test(p), '');
+  record('prompt:Leitperspektive', /Bildung für nachhaltige Entwicklung/.test(p), '');
+  await page.evaluate(() => { const c = document.getElementById('three-levels'); c.checked = true; c.dispatchEvent(new Event('change')); });
+  await page.click('#genBtn');
+  p = await page.evaluate(() => window.__prompts.at(-1));
+  const disabled = await page.$eval('#diff-level', e => e.disabled);
+  record('prompt:drei Niveaus', /"niveaus"/.test(p) && /"basis"/.test(p) && /"experte"/.test(p) && disabled, disabled ? '' : 'Anforderungsniveau nicht gesperrt');
+  await page.evaluate(() => { const c = document.getElementById('three-levels'); c.checked = false; c.dispatchEvent(new Event('change')); document.getElementById('afb-level').value = ''; document.getElementById('leitperspektive').value = ''; });
+
+  // Vorschau mit AFB-Verteilung
+  await page.evaluate(() => navigateTo(5));
+  const q = (t, afb) => ({ text: t, afb, answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] });
+  await page.fill('#jsonIn', JSON.stringify({ questions: [q('F1', 'I'), q('F2', 'II'), q('F3', 'III')] }));
+  const v = await page.$eval('#jsonValidationStatus', e => e.textContent);
+  record('vorschau:AFB-Verteilung', /AFB I\/II\/III: 1\/1\/1/.test(v), v.trim());
+
+  // Drei Niveaus -> drei Dateien
+  const lvl = n => ({ questions: [q(n + ' 1', 'I'), q(n + ' 2', 'II')] });
+  await page.fill('#jsonIn', JSON.stringify({ niveaus: { basis: lvl('B'), standard: lvl('S'), experte: lvl('E') } }));
+  const v3 = await page.$eval('#jsonValidationStatus', e => e.textContent);
+  const shown = await page.$eval('#niveau-wrap', e => getComputedStyle(e).display !== 'none');
+  const downloads = [];
+  const onDl = d => downloads.push(d);
+  page.on('download', onDl);
+  await page.selectOption('#niveau-select', 'all');
+  await page.click('#packBtn');
+  await page.waitForFunction(() => /Dateien wurden erstellt|Fehler/.test(document.getElementById('packStatus').textContent), null, { timeout: 15000 });
+  await page.waitForTimeout(800);
+  page.off('download', onDl);
+  const names = downloads.map(d => d.suggestedFilename());
+  record('niveaus:drei Dateien', /3 Niveaus erkannt/.test(v3) && shown && names.length === 3 && names.some(n => /Basis/.test(n)) && names.some(n => /Experte/.test(n)), names.join(', ') + ' | ' + v3.trim().slice(0, 80));
+  if (downloads[0]) await downloads[0].saveAs(path.join(OUT, 'pack-niveau-basis.h5p'));
+} catch (e) { record('afb/niveaus', false, e.message.split('\n')[0]); }
 
 // ---------- 3) Korrektur-Prompt, Template-Aktualisierung ----------
 try {
@@ -233,12 +356,87 @@ try {
   record('korrektur-prompt', /FEHLER:/.test(fix) && /Ungültiges JSON/.test(fix) && /```json/.test(fix), fix.slice(0, 120));
 } catch (e) { record('korrektur-prompt', false, e.message.split('\n')[0]); }
 try {
+  // ab V.0.10.1 liegt der Button im Bereich "Vorlagen & Bibliotheksversionen" (Server-Modus)
+  await page.evaluate(() => { const d = document.getElementById('tpl-settings'); if (d) d.open = true; const s = document.getElementById('tpl-source'); if (s && s.value !== 'server') { s.value = 'server'; s.dispatchEvent(new Event('change')); } });
   await page.click('#refreshTplBtn', { timeout: 3000 });
   await page.waitForFunction(() => /aktuell|aktualisiert/.test(document.getElementById('refreshTplBtn').textContent), null, { timeout: 30000 });
   const t = (await page.$eval('#refreshTplBtn', b => b.textContent)).trim();
   record('templates-aktualisieren', !/nicht erreichbar/.test(t), t);
   record('template-stand-angezeigt', /Stand/.test(await page.$eval('#activeTemplateInfo', e => e.textContent)), '');
 } catch (e) { record('templates-aktualisieren', false, e.message.split('\n')[0]); }
+
+// ---------- 4) Eingebaute Vorlagen ohne erreichbaren Server (frischer Browser, Standard-Einstellung) ----------
+try {
+  const ctx2 = await browser.newContext({ acceptDownloads: true });
+  await ctx2.route('**/*', route => route.request().url().startsWith('file:') ? route.continue() : route.fulfill({ status: 404, body: '' }));
+  const p2 = await ctx2.newPage();
+  const errs2 = [];
+  p2.on('pageerror', e => errs2.push(e.message));
+  await p2.goto('file://' + HTML);
+  await p2.selectOption('#schulart', 'Gymnasium');
+  await selectFach(p2, 'Biologie');
+  record('darkmode-standard', await p2.evaluate(() => document.documentElement.dataset.theme) === 'dark', '');
+  await p2.selectOption('#klasse', '8');
+  await p2.evaluate(() => navigateTo(5));
+  await p2.fill('#jsonIn', '{"text":"Fülle die Lücken.","questions":["Die *Sonne* scheint."]}');
+  const info = (await p2.$eval('#activeTemplateInfo', e => e.textContent)).trim();
+  const [dl] = await Promise.all([p2.waitForEvent('download', { timeout: 10000 }).catch(() => null), p2.click('#packBtn', { timeout: 3000 })]);
+  let ok = !!dl && /Eingebaute Vorlage/.test(info) && !/nicht geladen/.test(info) && errs2.length === 0;
+  if (dl) { const z = await JSZip.loadAsync(fs.readFileSync(await dl.path())); const c = JSON.parse(await z.file('content/content.json').async('string')); ok = ok && c.checkAnswer === 'Überprüfen'; }
+  record('ohne-server-standard-eingebaut', ok, ok ? '' : info + ' ' + errs2.join(' | '));
+  await ctx2.close();
+} catch (e) { record('ohne-server-standard-eingebaut', false, e.message.split('\n')[0]); }
+
+// ---------- 5) Barrierefreiheit, Design-Umschalter, gespeicherte Eingaben (ab V.1.0) ----------
+if (await page.$('#themeBtn')) {
+  try {
+    await page.evaluate(() => navigateTo(1));
+    // Fortschrittsschritte per Tastatur
+    await page.focus('.progress-step[data-step="2"]');
+    await page.keyboard.press('Enter');
+    record('a11y:Schritt per Tastatur', await page.$eval('#page-2', e => e.classList.contains('active')) && await page.$eval('.progress-step[data-step="2"]', e => e.getAttribute('aria-current') === 'step'), '');
+    // Typ-Kacheln: Radios fokussierbar, Pfeiltasten wählen
+    await page.focus('#t-blanks');
+    await page.keyboard.press('ArrowRight');
+    record('a11y:Typwahl mit Pfeiltasten', await page.$eval('#t-complex-blanks', e => e.checked), '');
+    // Hilfe-Dialog: Escape schließt, Fokus kehrt zurück
+    await page.click('#helpBtn');
+    const opened = await page.$eval('#helpModal', e => e.style.display === 'block' && document.activeElement.id === 'closeModal');
+    await page.keyboard.press('Escape');
+    record('a11y:Hilfe-Dialog mit Escape', opened && await page.$eval('#helpModal', e => e.style.display === 'none' && document.activeElement.id === 'helpBtn'), '');
+    // Beschriftungen: jedes sichtbare Formularfeld hat ein Label oder aria-label
+    const unlabeled = await page.evaluate(() => Array.from(document.querySelectorAll('input, select, textarea')).filter(el => el.type !== 'hidden' && el.type !== 'file' && el.id
+      && !document.querySelector('label[for="' + el.id + '"]') && !el.getAttribute('aria-label') && !el.closest('label')).map(el => el.id));
+    record('a11y:Formularfelder beschriftet', unlabeled.length === 0, unlabeled.join(', '));
+    // Page-Bausteine per Knopf verschieben
+    await selectType('t-page');
+    await page.evaluate(() => navigateTo(3));
+    const before = await page.$$eval('#page-block-list .page-block-item', els => els.map(e => e.dataset.block));
+    await page.click('#page-block-list .page-block-item:first-child .move-btn[data-dir="1"]');
+    const after = await page.$$eval('#page-block-list .page-block-item', els => els.map(e => e.dataset.block));
+    record('a11y:Bausteine verschieben', after[0] === before[1] && after[1] === before[0], after.slice(0, 3).join(','));
+    // Design: Standard dunkel, Umschalten wird gespeichert
+    const t0 = await page.evaluate(() => document.documentElement.dataset.theme);
+    await page.click('#themeBtn');
+    const t1 = await page.evaluate(() => [document.documentElement.dataset.theme, localStorage.getItem('h5pWizard.theme')]);
+    await page.click('#themeBtn');
+    record('design:umschalten', t0 === 'dark' && t1[0] === 'light' && t1[1] === 'light', JSON.stringify([t0, t1]));
+    // Eingaben überstehen ein Neuladen; Knopf löscht sie
+    await selectType('t-timeline');
+    await page.evaluate(() => navigateTo(4));
+    await page.fill('#topic', 'GEMERKT-123');
+    await page.fill('#ref', 'NICHT-SPEICHERN');
+    await page.waitForTimeout(500);
+    await page.reload();
+    const restored = await page.evaluate(() => ({ fach: document.getElementById('fach').value, topic: document.getElementById('topic').value, ref: document.getElementById('ref').value,
+      type: document.querySelector('input[name="type"]:checked').value, timelineVisible: document.getElementById('opts-timeline').style.display === 'block', order: document.querySelector('#page-block-list .page-block-item').dataset.block }));
+    record('eingaben:wiederhergestellt', restored.fach === 'Biologie' && restored.topic === 'GEMERKT-123' && restored.ref === '' && restored.type === 'Timeline' && restored.timelineVisible && restored.order === after[0], JSON.stringify(restored));
+    await page.click('#resetFormBtn');
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(300);
+    record('eingaben:löschen', await page.evaluate(() => document.getElementById('topic').value === '' && document.getElementById('fach').value === ''), '');
+  } catch (e) { record('a11y/design/eingaben', false, e.message.split('\n')[0]); }
+}
 
 record('keine JavaScript-Fehler', pageErrors.length === 0, pageErrors.join(' | '));
 await browser.close();
