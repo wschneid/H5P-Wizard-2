@@ -46,11 +46,21 @@ const DEPS = {
   'sort-paragraphs': ['H5P.SortParagraphs 0.11'],
   'guess-the-answer': ['H5P.GuessTheAnswer 1.5', 'H5P.Image 1.1'],
   'summary': ['H5P.Summary 1.10'],
-  'interactive-video': ['H5P.InteractiveVideo 1.28', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8'],
+  'interactive-video': ['H5P.InteractiveVideo 1.28', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Summary 1.10'],
   'h5p-column': ['H5P.Column 1.16', 'H5P.AdvancedText 1.1', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.Summary 1.10', 'H5P.SingleChoiceSet 1.11'],
   'accordion': ['H5P.Accordion 1.0', 'H5P.AdvancedText 1.1'],
   'crossword': ['H5P.Crossword 0.4'],
   'timeline': ['H5P.Timeline 1.1'],
+};
+// Template-Inhalte wie aus einem deutschen WordPress-Export: Beschriftungen (sollen erhalten bleiben)
+// plus Beispielinhalte und Medien (dürfen NICHT ins Ergebnis gelangen)
+const IMG = { library: 'H5P.Image 1.1', params: { file: { path: 'images/template.jpg', mime: 'image/jpeg' } }, subContentId: 'tpl-img', metadata: {} };
+const TPL_CONTENT = {
+  'multiple-choice': { question: '<p>Template-Frage</p>', answers: [{ text: 'T', correct: true }], media: { type: IMG }, UI: { checkAnswerButton: 'Überprüfen' }, behaviour: { randomAnswers: false, enableRetry: true }, confirmCheck: { header: 'Beenden?' } },
+  'question-set': { introPage: { showIntroPage: true, title: 'Beispiel-Quiz' }, poolSize: 2, texts: { finishButton: 'Beenden' },
+    endGame: { showResultPage: true, showAnimations: false, skippable: false, successVideo: { path: 'v.mp4' } },
+    questions: [{ library: 'H5P.MultiChoice 1.16', params: { question: '<p>B</p>', UI: { checkAnswerButton: 'Überprüfen' }, media: { type: IMG } }, subContentId: 'tpl-q1', metadata: { title: 'Alt' } }] },
+  'dialog-cards': { title: '<p>Beispiel-Titel</p>', description: '<p>Beispiel</p>', dialogs: [{ text: 'a', answer: 'b' }], answer: 'Umdrehen', next: 'Weiter', mode: 'normal' },
 };
 // Zusätzliche Bibliotheksordner ohne Eintrag in h5p.json (Exporte enthalten teils mehrere Versionen)
 const EXTRA_FOLDERS = { 'multiple-choice': ['H5P.Question-1.5'] };
@@ -59,7 +69,7 @@ async function makeTemplate(url) {
   const deps = (DEPS[key] || ['H5P.Unknown 1.0']).map(s => { const [m, v] = s.split(' '); const [a, b] = v.split('.'); return { machineName: m, majorVersion: a, minorVersion: b }; });
   const zip = new JSZip();
   zip.file('h5p.json', JSON.stringify({ title: 'Tpl', language: 'de', mainLibrary: deps[0].machineName, embedTypes: ['iframe'], license: 'U', preloadedDependencies: deps }));
-  zip.file('content/content.json', JSON.stringify({ l10n: { checkAnswer: 'Überprüfen' } }));
+  zip.file('content/content.json', JSON.stringify(TPL_CONTENT[key] || {}));
   for (const d of deps) zip.file(`${d.machineName}-${d.majorVersion}.${d.minorVersion}/library.json`, '{}');
   for (const f of EXTRA_FOLDERS[key] || []) zip.file(`${f}/library.json`, '{}');
   return zip.generateAsync({ type: 'nodebuffer' });
@@ -134,20 +144,34 @@ async function pack(name, typeId, json, setup) {
   await page.evaluate(() => navigateTo(5));
   await page.fill('#fname', 'Test Übung');
   await page.fill('#jsonIn', typeof json === 'string' ? json : JSON.stringify(json));
-  if (await page.$eval('#packBtn', b => b.disabled)) return { packBtnDisabled: true, validation: await page.$eval('#jsonValidationStatus', e => e.textContent) };
+  const validation = await page.$eval('#jsonValidationStatus', e => e.textContent);
+  if (await page.$eval('#packBtn', b => b.disabled)) return { packBtnDisabled: true, validation };
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }).catch(() => null), page.click('#packBtn')]);
   const status = await page.$eval('#packStatus', e => e.textContent);
-  if (!dl) return { status };
+  if (!dl) return { status, validation };
   const file = path.join(OUT, `pack-${name}.h5p`);
   await dl.saveAs(file);
   const zip = await JSZip.loadAsync(fs.readFileSync(file));
-  return { status, file, filename: dl.suggestedFilename(), h5p: JSON.parse(await zip.file('h5p.json').async('string')), content: JSON.parse(await zip.file('content/content.json').async('string')), files: Object.keys(zip.files) };
+  return { status, validation, file, filename: dl.suggestedFilename(), h5p: JSON.parse(await zip.file('h5p.json').async('string')), content: JSON.parse(await zip.file('content/content.json').async('string')), files: Object.keys(zip.files) };
 }
 
 // Jeder Fall: [name, typeId, json, check(result) -> Fehlertext|null, known?, setup?]
 const CASES = [
   ['mc-mehrere-fragen', 't-mc', { questions: [1, 2, 3].map(i => ({ text: 'F' + i, answers: [{ text: 'a', correct: true }, { text: 'b', correct: false, feedback: 'nein' }] })) },
     r => (r.h5p?.mainLibrary === 'H5P.QuestionSet' && r.content?.questions?.length === 3) ? null : 'nur 1 von 3 Fragen exportiert'],
+  ['vorschau-anzahl', 't-mc', { questions: [1, 2, 3].map(i => ({ text: 'F' + i, answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] })) },
+    r => /3 Fragen erkannt/.test(r.validation || '') ? null : 'Vorschau fehlt: ' + r.validation],
+  ['validierung-sperrt-export', 't-mc', { questions: [{ text: 'F', answers: [{ text: 'a', correct: false }, { text: 'b', correct: false }] }] },
+    r => (r.packBtnDisabled && /keine Antwort mit/.test(r.validation || '')) ? null : 'Frage ohne richtige Antwort wurde nicht gesperrt'],
+  ['falscher-typ-erkannt', 't-blanks', { questions: [{ text: 'F1', answers: [{ text: 'a', correct: true }] }] },
+    r => (r.packBtnDisabled && /passt das JSON/.test(r.validation || '')) ? null : 'MC-JSON bei Lückentext nicht erkannt: ' + r.validation],
+  ['template-merge-mc', 't-mc', { questions: [{ text: 'Neu', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
+    r => { const c = r.content || {}; return (c.UI?.checkAnswerButton === 'Überprüfen' && c.confirmCheck?.header === 'Beenden?' && !c.media && c.behaviour?.randomAnswers === false && /Neu/.test(c.question)) ? null : 'Merge fehlerhaft: ' + JSON.stringify(c).slice(0, 200); }],
+  ['template-merge-quiz', 't-qs', { questions: [{ type: 'mc', text: 'Wie heißt X?', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
+    r => { const c = r.content || {}, q = c.questions?.[0] || {}; const ok = c.texts?.finishButton === 'Beenden' && !c.introPage && !('poolSize' in c) && c.endGame?.showAnimations === false && !c.endGame?.successVideo
+      && q.params?.UI?.checkAnswerButton === 'Überprüfen' && !q.params?.media && q.subContentId !== 'tpl-q1' && q.metadata?.title === 'Wie heißt X?'; return ok ? null : 'Merge fehlerhaft: ' + JSON.stringify(c).slice(0, 300); }],
+  ['template-merge-karten', 't-cards', { cards: [{ text: 'Vorne', answer: 'Hinten' }] },
+    r => { const c = r.content || {}; return (c.answer === 'Umdrehen' && !c.title && !c.description && c.dialogs?.length === 1) ? null : 'Merge fehlerhaft: ' + JSON.stringify(c).slice(0, 200); }],
   ['mc-behaviour-type', 't-mc', { text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] },
     r => r.content?.behaviour?.type ? null : 'behaviour.type fehlt (singleAnswer ist veraltet)'],
   ['mehrere-versionen-im-template', 't-mc', { questions: [{ text: 'F', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }] },
@@ -181,8 +205,14 @@ const CASES = [
   ['video-shorts-url', 't-video', { interactions: [{ time: '1:02:03', type: 'tf', question: 'Q', correct: 'true', feedback: 'f' }] },
     r => { const v = r.content?.interactiveVideo; const path = v?.video?.files?.[0]?.path; const t = v?.assets?.interactions?.[0]?.duration?.from; return path === 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' && t === 3723 ? null : `Video-URL ${path}, Zeit ${t}`; }, false,
     () => { document.getElementById('youtube-url').value = 'https://youtube.com/shorts/dQw4w9WgXcQ?feature=share'; }],
+  ['video-zusammenfassung', 't-video', { interactions: [{ time: 30, type: 'mc', question: 'Q', answers: [{ text: 'a', correct: true }, { text: 'b', correct: false }] }], summary: [['Richtig 1', 'Falsch 1a', 'Falsch 1b'], ['Richtig 2', 'Falsch 2a']] },
+    r => { const s = r.content?.interactiveVideo?.summary; return (s?.task?.library?.startsWith('H5P.Summary') && s.task.params.summaries.length === 2 && /Richtig 1/.test(s.task.params.summaries[0].summary[0])) ? null : 'Zusammenfassung fehlt: ' + JSON.stringify(s); }, false,
+    () => { document.getElementById('youtube-url').value = 'https://youtu.be/dQw4w9WgXcQ'; const c = document.getElementById('iv-summary'); if (c) c.checked = true; }],
   ['dateiname-umlaute', 't-cards', { cards: [{ text: 'Photosynthese', answer: 'Licht → Glucose' }] },
     r => /Ue?bung/i.test(r.filename || '') ? null : 'Dateiname verstümmelt: ' + r.filename],
+  ['lizenz-autorin', 't-tf', { questions: [{ question: 'A', correct: 'true' }, { question: 'B', correct: 'false' }] },
+    r => { const h = r.h5p || {}; const q = r.content?.questions?.[0]; return (h.license === 'CC BY-SA' && h.licenseVersion === '4.0' && h.authors?.[0]?.name === 'Test Person' && q?.metadata?.license === 'CC BY-SA') ? null : 'Lizenz/Autor:in fehlt: ' + JSON.stringify({ license: h.license, v: h.licenseVersion, a: h.authors, sub: q?.metadata }); }, false,
+    () => { const l = document.getElementById('license'); if (l) l.value = 'CC BY-SA|4.0'; const a = document.getElementById('author'); if (a) a.value = 'Test Person'; }],
 ];
 for (const [name, typeId, json, check, known, setup] of CASES) {
   let r;
@@ -190,6 +220,25 @@ for (const [name, typeId, json, check, known, setup] of CASES) {
   const err = r.error ? r.error : check(r);
   record(`pack:${name}`, !err, err || '', !!known);
 }
+
+// ---------- 3) Korrektur-Prompt, Template-Aktualisierung ----------
+try {
+  await selectType('t-mc');
+  await page.evaluate(() => navigateTo(5));
+  await page.fill('#jsonIn', '{"questions":[{"text":"F","answers":[{"text":"a","correct":true},{"text":"b"}]}]');
+  const n0 = await page.evaluate(() => window.__prompts.length);
+  await page.click('#fixPromptBtn', { timeout: 3000 });
+  await page.waitForFunction(n => window.__prompts.length > n, n0, { timeout: 3000 });
+  const fix = await page.evaluate(() => window.__prompts.at(-1));
+  record('korrektur-prompt', /FEHLER:/.test(fix) && /Ungültiges JSON/.test(fix) && /```json/.test(fix), fix.slice(0, 120));
+} catch (e) { record('korrektur-prompt', false, e.message.split('\n')[0]); }
+try {
+  await page.click('#refreshTplBtn', { timeout: 3000 });
+  await page.waitForFunction(() => /aktuell|aktualisiert/.test(document.getElementById('refreshTplBtn').textContent), null, { timeout: 30000 });
+  const t = (await page.$eval('#refreshTplBtn', b => b.textContent)).trim();
+  record('templates-aktualisieren', !/nicht erreichbar/.test(t), t);
+  record('template-stand-angezeigt', /Stand/.test(await page.$eval('#activeTemplateInfo', e => e.textContent)), '');
+} catch (e) { record('templates-aktualisieren', false, e.message.split('\n')[0]); }
 
 record('keine JavaScript-Fehler', pageErrors.length === 0, pageErrors.join(' | '));
 await browser.close();

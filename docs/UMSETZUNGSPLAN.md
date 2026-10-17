@@ -9,7 +9,7 @@ Jede Phase endet mit:
 | Phase | Version | Ziel | Status |
 |---|---|---|---|
 | 1 | **V.0.9.7** | Fehler beheben, die Inhalte verlieren oder ungültige Pakete erzeugen | ✅ umgesetzt, Upload-Test offen |
-| 2 | V.0.10 | Robuster Export: Template-Merge, Validierung, Korrektur-Prompt | geplant |
+| 2 | **V.0.10** | Robuster Export: Template-Merge, Validierung, Korrektur-Prompt | ✅ umgesetzt, Upload-Test offen |
 | 3 | V.0.11 | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | geplant |
 | 4 | V.0.12 | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | geplant |
 | 5 | V.1.0 | Architektur (Typ-Registry), Interactive Book, Barrierefreiheit, Offline/DSGVO | geplant |
@@ -46,15 +46,25 @@ Jede Phase endet mit:
 
 ---
 
-## Phase 2 – V.0.10 „Robuster Export“
+## Phase 2 – V.0.10 „Robuster Export“ ✅
 
-1. **Template-Merge:** `content/content.json` des Templates laden und die generierten Felder hineinmergen → deutsche Beschriftungen (l10n), Standard-Einstellungen und Pflichtfelder (`endGame.showAnimations` …) bleiben erhalten.
-2. **Schema-Prüfung nach dem Parsen** je Typ mit verständlichen Meldungen („Frage 3: ‚correct‘ fehlt“) und Vorschau (Anzahl erkannter Fragen).
-3. **Korrektur-Prompt-Button:** Fehlerliste + „Gib das vollständige, korrigierte JSON aus“ in die Zwischenablage.
-4. **Template-Cache:** Button „Templates aktualisieren“, Versions-/ETag-Prüfung.
-5. **JS-Bibliotheken:** JSZip gepinnt mit SRI (oder eingebettet), FileSaver durch nativen Download ersetzen, Font Awesome 6.7.2 (selbst gehostet).
-6. **Lizenz & Metadaten:** Lizenzauswahl (z. B. CC BY-SA 4.0), Autor:in, sinnvolle Sub-Content-Titel.
-7. Interactive Video: Positionen/Größe der Interaktionen, Abschluss-Summary.
+| # | Vorhaben | Umsetzung |
+|---|---|---|
+| 1 | **Template-Merge** | `mergeTemplateContent()`: Die generierten Inhalte werden in die `content.json` des Templates eingefügt. Erhalten bleiben Beschriftungen (UI, l10n, texts), Einstellungen (`behaviour`, `endGame` …) und Pflichtfelder – auch in Teilinhalten von Quiz, Page und Video (Abgleich über die Bibliothek). **Nie** übernommen werden Medien und Beispielinhalte des Templates (`media`, `title`, `description`, `introPage`, `poolSize`, Lesezeichen, Video-Endbildschirme …). |
+| 2 | **Inhaltsprüfung + Vorschau** | `validateData()` prüft jeden Typ beim Einfügen: z. B. „Frage 2: keine Antwort mit correct: true“, „Lücken im Text (4) und blanks (3) stimmen nicht überein“, „Hinweis enthält das Lösungswort“. Vorschau: „5 Fragen erkannt → wird als Question Set verpackt“. **Fehler sperren den Export**, Hinweise nicht. Falscher Inhaltstyp wird erkannt. |
+| 3 | **Korrektur-Prompt** | Button „Korrektur-Prompt kopieren“: Fehler- und Hinweisliste + Bitte um vollständiges, korrigiertes JSON (bei Syntaxfehlern mit konkreten Tipps). |
+| 4 | **Template-Cache** | Button „Templates aktualisieren“ (mit Ergebnis „x aktualisiert / alle aktuell / y nicht erreichbar“), wöchentliche Prüfung im Hintergrund (Prüfsumme statt Versionsnummer), Anzeige „Stand TT.MM.JJJJ“. Ein gecachtes Template bleibt nutzbar, wenn der Server nicht erreichbar ist. |
+| 5 | **JS-Bibliotheken** | JSZip 3.10.1 **eingebettet** (offiziell aus npm; keine Abhängigkeit von ws-lab.de/Libs, offline nutzbar). FileSaver entfernt → nativer Download. Font Awesome 6.5.1 → 6.7.2. |
+| 6 | **Lizenz & Metadaten** | Auswahl Lizenz (CC BY / BY-SA / BY-NC / BY-NC-SA / BY-ND 4.0, CC0, ©) und Autor:in → `h5p.json` und alle Teilinhalte; Autor-/Quellangaben des Templates werden entfernt; Auswahl wird im Browser gemerkt. Quizfragen tragen ihren Fragetext als Titel. |
+| 7 | **Interactive Video** | Optionale Zusammenfassung am Videoende (H5P.Summary, 3 Aussagegruppen) – Checkbox in Schritt 3, Prompt und Packer. |
+
+**Testergebnis V.0.10:** E2E 69/69 bestanden; alle 23 Testpakete ohne Validator-Fehler. Gegenprobe: gegen V.0.9.7 schlagen genau die 10 neuen Phase-2-Tests fehl.
+
+**Offen in Phase 2:**
+- [ ] Upload-Test mit den echten Templates – insbesondere prüfen, dass die **deutschen Beschriftungen** ankommen und keine Beispielinhalte der Templates auftauchen.
+- [ ] Font Awesome selbst hosten (DSGVO): Dateien von fontawesome.com nach `ws-lab.de/wp-content/uploads/…` legen und den `<link>` umstellen – braucht Zugriff auf den Server. Die Prüfsumme (SRI) für cdnjs konnte aus der Testumgebung nicht verifiziert werden.
+- [ ] Interactive Video: Positionen/Größe der Fragen – nur mit echter Darstellung in WordPress sinnvoll zu justieren (x/y in %, Breite/Höhe in em); bisher x = y = 50 %.
+- [ ] Die WordPress-Bibliotheksablage `ws-lab.de/wp-content/uploads/2026/Libs/` (jszip, FileSaver) wird nicht mehr benötigt.
 
 ## Phase 3 – V.0.11 „Prompts“
 
