@@ -21,7 +21,7 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 | 6 | **V.1.1** | Neuer Inhaltstyp Course Presentation | ✅ umgesetzt, Upload-Test offen |
 | 7 | **V.1.2** | Bundesland-Auswahl, Erklärungen zu den didaktischen Einstellungen, Szenario-Beschreibung | ✅ umgesetzt |
 | 8 | **V.1.3** | Szenario „Selbstlernen“, Unterrichtsphase, Vorwissen, Kompetenzbezug; Informatik/Medienbildung (BW) | ✅ umgesetzt |
-| 9 | **V.1.4** | Neue Inhaltstypen Bingo (mit Vorleseliste) und Structure Strip (Schreibgerüst) | ✅ umgesetzt, Upload-Test offen |
+| 9 | **V.1.4** | Neue Inhaltstypen Bingo (mit Vorleseliste), Structure Strip (Schreibgerüst) und Speak the Words Set (Sprechaufgaben) | ✅ umgesetzt, Upload-Test offen |
 
 ---
 
@@ -202,7 +202,7 @@ Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf 
 
 **Testergebnis V.1.3:** E2E 161/161 (neu: Selbstlernen schaltet Feedback/Tipps ein und ergänzt den Prompt, Wiederholen/Lösungen im Paket, Phase/Kompetenz/Vorwissen im Prompt, BW-Fächer); 62 Testpakete ohne Validator-Fehler.
 
-## V.1.4 „Bingo und Structure Strip“ ✅
+## V.1.4 „Bingo, Structure Strip, Speak the Words Set“ ✅
 
 Anlass: Prüfung, welche weiteren Inhaltstypen sich sinnvoll integrieren lassen (Bewertung in [`ANALYSE.md` §7](ANALYSE.md#7-weitere-inhaltstypen)).
 
@@ -210,10 +210,12 @@ Anlass: Prüfung, welche weiteren Inhaltstypen sich sinnvoll integrieren lassen 
 |---|---|
 | **Bingo** (H5P.Bingo 0.3, otacke) | Begriffe-Bingo für die Klasse: Die KI liefert Begriffe für die Felder und zu jedem Begriff einen Hinweis zum Vorlesen. Optionen: Spielfeld 3 × 3 / 4 × 4 / 5 × 5, Anzahl Begriffe (mehr Begriffe als Felder → jede:r bekommt ein anderes Spielfeld), Art der Hinweise (Umschreibung → Fachbegriff, Frage → Antwort, Rechenaufgabe → Ergebnis, deutsches Wort → Wort in der Fremdsprache), Joker in der Mitte. Nach dem Export gibt es den Knopf **„Vorleseliste herunterladen“** (Textdatei mit nummerierten Hinweisen zum Abhaken, Lösungen und alphabetischer Begriffsliste). Prüfung: mind. 3 Begriffe (sonst gesperrt); Hinweise zu weniger Begriffen als Feldern, doppelten Begriffen, sehr langen Begriffen, fehlenden Hinweisen und Hinweisen, die den Begriff enthalten. |
 | **Structure Strip** (H5P.StructureStrip 1.0/1.1, otacke) | Schreibgerüst: Schreibauftrag und 2–8 Abschnitte, je Abschnitt Titel, 2–4 Hinweise (Leitfragen und Formulierungshilfen, als Aufzählung) und Gewicht (relative Länge). Optionen: Textsorte (frei, z. B. Erörterung, Versuchsprotokoll), Anzahl Abschnitte, erwartete Textlänge (setzt Mindest-/Höchstlänge in Zeichen), Rückmeldung zur Länge schon beim Schreiben. Farben der Abschnitte aus der Palette des H5P-Editors mit dunkler Schrift (Kontrast > 7:1). H5P prüft nur das Längenverhältnis der Abschnitte, nicht den Inhalt. |
-| Eingebaute Vorlagen | 27 Bibliotheken (51 KB); deutsche Beschriftungen beider Typen aus den offiziellen Sprachdateien. Die Beschriftungen der bisherigen 25 Bibliotheken sind unverändert. |
+| **Speak the Words Set** (H5P.SpeakTheWordsSet 1.3 mit H5P.SpeakTheWords 1.5) | Sprechaufgaben: Lernende sprechen die Antwort ins Mikrofon, H5P vergleicht das Erkannte (ohne Groß-/Kleinschreibung und Punkte) mit den erlaubten Antworten. Aufgabenarten: Begriff sprechen (Fremdsprache: Übersetzung; Deutsch: Begriff zu einer Umschreibung), Vorlesen (Aussprache), kurze Antwort. Sprache der Spracherkennung nach Fach (Englisch → en-GB, Französisch → fr-FR, Spanisch → es-ES, sonst de-DE) oder von Hand. Der Prompt verlangt kurze Antworten ohne Satzzeichen und alle gleichwertigen Varianten (mit/ohne Artikel, I'm/I am, Zahl als Ziffer und Wort); der Packer entfernt übrige Satzzeichen, weil die Spracherkennung keine liefert. Hinweis im Wizard: Datenschutz (Aufnahme geht an den Browser-Hersteller) und keine Unterstützung in Firefox. |
+| Eingebaute Vorlagen | 29 Bibliotheken (54 KB); deutsche Beschriftungen aller neuen Typen aus den offiziellen Sprachdateien. Die Beschriftungen der bisherigen 25 Bibliotheken sind unverändert. |
 
-**Testergebnis V.1.4:** E2E 174/174 (neu: Prompt-Vertragstests beider Typen, Bingo mit Joker/Feldgröße/HTML-Escaping, Bingo als reine Wortliste, Sperre bei zu wenigen Begriffen, Download und Inhalt der Vorleseliste, Structure Strip mit Hinweislisten/Gewichten/Länge/Rückmeldemodus); 68 Testpakete ohne Validator-Fehler.
+**Testergebnis V.1.4:** E2E 181/181 (neu: Prompt-Vertragstests der drei Typen, Bingo mit Joker/Feldgröße/HTML-Escaping, Bingo als reine Wortliste, Sperre bei zu wenigen Begriffen, Download und Inhalt der Vorleseliste, Structure Strip mit Hinweislisten/Gewichten/Länge/Rückmeldemodus, Speak the Words Set mit Satzzeichen-Bereinigung, Sprache nach Fach und Sperre ohne Antworten); 71 Testpakete ohne Validator-Fehler.
 
 **Offen:**
 - [ ] In Moodle prüfen, ob **H5P.Bingo 0.3** und **H5P.StructureStrip** installiert sind (Website-Administration → H5P → H5P-Inhaltstypen verwalten). Bingo hat auf GitHub keinen Release-Zweig (Version 0.x) – ob es über den H5P-Hub angeboten wird, konnte aus der Testumgebung nicht geprüft werden (h5p.org nicht erreichbar). Fehlt es, muss die Administration die Bibliothek einmalig hochladen. Structure Strip: Standard ist 1.0 (GitHub-Release); ist in Moodle 1.1 installiert, die Version über „Versionen aus H5P-Datei übernehmen“ oder von Hand anpassen.
-- [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Bingo 4 × 4 mit 20 Begriffen (Darstellung langer Begriffe auf dem Tablet), Structure Strip mit 4 Abschnitten.
+- [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Bingo 4 × 4 mit 20 Begriffen (Darstellung langer Begriffe auf dem Tablet), Structure Strip mit 4 Abschnitten, Speak the Words Set in Chrome, Edge und Safari/iPad (Mikrofonfreigabe im Moodle-iframe, Erkennungsqualität).
+- [ ] Datenschutz Speak the Words: Einsatz mit der/dem Datenschutzbeauftragten der Schule klären (Sprachaufnahmen gehen an Google/Microsoft/Apple).

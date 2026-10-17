@@ -262,6 +262,18 @@
       "release": null,
       "master": "0.3.4",
       "inWizard": true
+    },
+    "H5P.SpeakTheWordsSet": {
+      "repo": "h5p/h5p-speak-the-words-set",
+      "release": "1.3.4",
+      "master": "1.3.4",
+      "inWizard": true
+    },
+    "H5P.SpeakTheWords": {
+      "repo": "h5p/h5p-speak-the-words",
+      "release": "1.5.7",
+      "master": "1.5.7",
+      "inWizard": true
     }
   }
 }

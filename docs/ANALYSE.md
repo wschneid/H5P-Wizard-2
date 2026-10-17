@@ -263,7 +263,8 @@ Bewertet nach: Kann eine KI den Inhalt rein textbasiert erzeugen? Unterrichtsnut
 | **Memory Game** | H5P.MemoryGame 1.3 | ★☆☆ (braucht Bilder) | ★★ | mittel – Bild-Upload existiert schon | später |
 | **Chart** (Diagramm aus Daten) | H5P.Chart 1.2 | ★★☆ | ★ | gering | optional |
 | **Course Presentation** | 1.27 | ★☆☆ (Layout/Koordinaten) | ★★ | hoch | eher nicht |
-| Image Hotspots, Drag and Drop, Image Pairing/Sequencing, Speak the Words | – | ✗ (Bild-/Koordinatenarbeit bzw. nur Chrome) | – | – | nicht sinnvoll |
+| ~~**Speak the Words Set**~~ (Sprechaufgaben: Übersetzen, Vorlesen, kurze Antworten) | H5P.SpeakTheWordsSet 1.3 / H5P.SpeakTheWords 1.5 | ★★★ (nur Text) | ★★ (Fremdsprachen, DaZ, Aussprache) | gering | ✅ umgesetzt in V.1.4 – Spracherkennung des Browsers (Chrome/Edge/Safari, nicht Firefox) überträgt die Aufnahme an den Browser-Hersteller → Datenschutz vor dem Einsatz klären |
+| Image Hotspots, Drag and Drop, Image Pairing/Sequencing | – | ✗ (Bild-/Koordinatenarbeit) | – | – | nicht sinnvoll |
 
 ---
 

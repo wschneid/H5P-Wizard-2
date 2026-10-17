@@ -319,6 +319,19 @@ const CASES = [
       && c.l10n?.checkAnswer === 'Überprüfen' && r.files?.length === 2 && /keine Hinweise/.test(r.validation || '');
       return ok ? null : 'Structure Strip: ' + JSON.stringify({ main: r.h5p?.mainLibrary, c, v: r.validation }).slice(0, 500); }, false,
     () => { document.getElementById('strip-live').checked = true; }],
+  ['eingebaut-speak-the-words', 't-speak', { questions: [{ question: 'Wie sagt man *Hund*?', acceptedAnswers: ['dog', 'the dog!', 'Dog', '„a dog“'] }, { question: 'Wie viele Tage?', answer: 'seven' }] },
+    r => { const c = r.content || {}, q = c.questions || [], d = r.h5p?.preloadedDependencies || [];
+      const ok = r.h5p?.mainLibrary === 'H5P.SpeakTheWordsSet' && q.length === 2 && /^H5P\.SpeakTheWords \d+\.\d+$/.test(q[0].library) && q[0].params.question === 'Wie sagt man Hund?'
+        && JSON.stringify(q[0].params.acceptedAnswers) === '["dog","the dog","Dog","a dog"]' && JSON.stringify(q[1].params.acceptedAnswers) === '["seven"]' && q[0].params.inputLanguage === 'de-DE'
+        && q[0].params.l10n?.speakLabel === 'Drücken um zu sprechen' && c.l10n?.finishButtonLabel === 'Beenden' && d.some(x => x.machineName === 'H5P.SpeakTheWords') && r.files?.length === 2
+        && /Satzzeichen/.test(r.validation || '');
+      return ok ? null : 'Speak the Words: ' + JSON.stringify({ main: r.h5p?.mainLibrary, deps: d.map(x => x.machineName), c, v: r.validation }).slice(0, 500); }],
+  ['speak-sprache-nach-fach', 't-speak', { questions: [{ question: 'Say it', acceptedAnswers: ['hello'] }] },
+    r => r.content?.questions?.[0]?.params?.inputLanguage === 'fr-FR' ? null : 'inputLanguage: ' + r.content?.questions?.[0]?.params?.inputLanguage, false,
+    () => { const f = document.getElementById('fach'); f.value = 'Französisch'; f.dispatchEvent(new Event('change')); }],
+  ['speak-ohne-antworten-gesperrt', 't-speak', { questions: [{ question: 'Q', acceptedAnswers: [] }] },
+    r => (r.packBtnDisabled && /keine "acceptedAnswers"/.test(r.validation || '')) ? null : 'nicht gesperrt: ' + r.validation, false,
+    () => { const f = document.getElementById('fach'); f.value = 'Biologie'; f.dispatchEvent(new Event('change')); }],
 ];
 for (const [name, typeId, json, check, known, setup] of CASES) {
   let r;
