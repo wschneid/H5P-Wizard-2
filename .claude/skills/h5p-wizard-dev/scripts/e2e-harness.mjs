@@ -103,7 +103,8 @@ async function selectFach(pg, fach) {
 const page = await ctx.newPage();
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
-await page.goto('file://' + HTML);
+// ab V.1.0.1 ist die Server-Vorlage nur mit ?vorlagen=server wählbar (ältere Versionen ignorieren den Zusatz)
+await page.goto('file://' + HTML + '?vorlagen=server');
 await page.selectOption('#schulart', 'Gymnasium');
 await selectFach(page, 'Biologie');
 await page.selectOption('#klasse', '8');
@@ -384,6 +385,14 @@ try {
   let ok = !!dl && /Eingebaute Vorlage/.test(info) && !/nicht geladen/.test(info) && errs2.length === 0;
   if (dl) { const z = await JSZip.loadAsync(fs.readFileSync(await dl.path())); const c = JSON.parse(await z.file('content/content.json').async('string')); ok = ok && c.checkAnswer === 'Überprüfen'; }
   record('ohne-server-standard-eingebaut', ok, ok ? '' : info + ' ' + errs2.join(' | '));
+  if (await p2.$('#tpl-source-wrap')) {
+    // Server-Option für Nutzer:innen ausgeblendet; früher gespeichertes "server" wird auf eingebaut zurückgesetzt
+    const hidden = await p2.$eval('#tpl-source-wrap', e => e.hidden && !e.offsetParent);
+    await p2.evaluate(() => localStorage.setItem('h5pWizard.tplSource', 'server'));
+    await p2.reload();
+    const after = await p2.evaluate(() => [document.getElementById('tpl-source').value, localStorage.getItem('h5pWizard.tplSource'), document.getElementById('tpl-source-wrap').hidden]);
+    record('server-vorlage-ausgeblendet', hidden && after[0] === 'builtin' && after[1] === 'builtin' && after[2] === true, JSON.stringify(after));
+  }
   await ctx2.close();
 } catch (e) { record('ohne-server-standard-eingebaut', false, e.message.split('\n')[0]); }
 

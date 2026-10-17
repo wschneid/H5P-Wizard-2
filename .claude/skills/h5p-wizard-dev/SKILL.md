@@ -21,7 +21,8 @@ fünf Schritten (Grundlagen → Inhaltstyp → Didaktik → Prompt → Export). 
 hochgeladen – meist von Lehrkräften ohne Recht, Bibliotheken zu installieren. Jede verlangte Bibliotheksversion
 muss daher in Moodle bereits installiert sein. Upload-Tests immer in Moodle mit Lehrkraft-Rolle.
 Ab V.0.10.1 ist die Standard-Vorlagenquelle **eingebaut** (Daten zwischen `/* BUILTIN_TEMPLATES:START/END */`,
-Paket ohne Bibliotheks-Code); Server-Vorlagen von ws-lab.de sind nur noch Option.
+Paket ohne Bibliotheks-Code). Ab V.1.0.1 ist die Server-Vorlage (ws-lab.de) für Nutzer:innen ausgeblendet und nur
+mit dem Aufruf `…html?vorlagen=server` wählbar (Entwicklung/Tests; der E2E-Harness nutzt das).
 
 Analyse & Befundliste: `docs/ANALYSE.md` (Stand 2026-10). Phasen und Status: `docs/UMSETZUNGSPLAN.md`.
 Lies beide vor größeren Änderungen. Neue Versionen entstehen als Kopie der letzten Datei mit neuer Nummer

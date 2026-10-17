@@ -17,6 +17,7 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 | 3 | **V.0.11** | Prompts überarbeiten (AFB/Operatoren, Aufbau, Differenzierung) | ✅ umgesetzt, Praxistest mit KIs offen |
 | 4 | **V.0.12** | Neue Inhaltstypen (Essay, Find the Words, Page-/Quiz-Erweiterungen) | ✅ umgesetzt, Upload-Test offen |
 | 5 | **V.1.0** | Typ-Registry, Interactive Book, Barrierefreiheit, Eingaben merken, Dark Mode (Standard) | ✅ umgesetzt, Upload-Test offen |
+| 5a | **V.1.0.1** | Server-Vorlage ausgeblendet (immer eingebaut), Kopfleiste ohne Überlappung | ✅ umgesetzt |
 
 ---
 
@@ -133,6 +134,8 @@ Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf 
 | 3 | **Barrierefreiheit** | Fach als normales Auswahlfeld; Typ-Kacheln per Tab und Pfeiltasten wählbar (sichtbarer Fokus); Fortschrittsschritte per Enter/Leertaste mit `aria-current`; Hilfe als Dialog (Escape schließt, Fokus kehrt zurück); alle Formularfelder beschriftet; Statusmeldungen werden vorgelesen (`aria-live`); Page-Bausteine auch per ▲/▼ verschiebbar; bessere Kontraste bei grauen Texten; reduzierte Animationen, wenn im System eingestellt. |
 | 4 | **Eingaben merken** | Die Angaben aus Schritt 1–4 (inkl. Reihenfolge der Bausteine) bleiben nach dem Neuladen erhalten – nur in diesem Browser. Basistext und KI-JSON werden nicht gespeichert. Knopf „Gespeicherte Eingaben löschen“ im Fuß. |
 | 5 | **Dark Mode als Standard** | Alle Farben laufen über Design-Variablen (hell/dunkel); dunkles Design ist voreingestellt, der Schalter ☀/☾ oben rechts wechselt und merkt sich die Wahl. Ungenutztes CSS und JavaScript entfernt. |
+
+**V.1.0.1:** Die Auswahl „Vom Server (ws-lab.de) – mit Bibliotheks-Code“ ist für Nutzer:innen ausgeblendet; der Wizard nutzt immer die eingebauten Vorlagen, eine früher gespeicherte Server-Wahl wird zurückgesetzt. Für Entwicklung und Tests bleibt sie über `?vorlagen=server` erreichbar. Außerdem überdeckt der Design-Schalter nicht mehr den Fortschrittsschritt 5. E2E 145/145, 57 Pakete ohne Validator-Fehler.
 
 **Testergebnis V.1.0:** E2E 144/144 (neu: Interactive Book, Tastaturbedienung, Hilfe-Dialog, Beschriftungen, Design-Umschalter, gespeicherte Eingaben); 57 Testpakete ohne Validator-Fehler.
 
