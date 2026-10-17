@@ -19,6 +19,8 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 | 5 | **V.1.0** | Typ-Registry, Interactive Book, Barrierefreiheit, Eingaben merken, Dark Mode (Standard) | ✅ umgesetzt, Upload-Test offen |
 | 5a | **V.1.0.1** | Server-Vorlage ausgeblendet (immer eingebaut), Kopfleiste ohne Überlappung | ✅ umgesetzt |
 | 6 | **V.1.1** | Neuer Inhaltstyp Course Presentation | ✅ umgesetzt, Upload-Test offen |
+| 7 | **V.1.2** | Bundesland-Auswahl, Erklärungen zu den didaktischen Einstellungen, Szenario-Beschreibung | ✅ umgesetzt |
+| 8 | **V.1.3** | Szenario „Selbstlernen“, Unterrichtsphase, Vorwissen, Kompetenzbezug; Informatik/Medienbildung (BW) | ✅ umgesetzt |
 
 ---
 
@@ -161,3 +163,41 @@ Anlass: „Template konnte nicht geladen werden“ – der Wizard war vom Abruf 
 **Offen:**
 - [ ] In Moodle prüfen, ob **H5P.CoursePresentation 1.27** installiert ist (sonst Version über „Versionen aus H5P-Datei übernehmen“ anpassen).
 - [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Darstellung der Folien (Textgröße, Platz für Aufgaben).
+
+## V.1.2 „Didaktische Einstellungen“ ✅
+
+| Vorhaben | Umsetzung |
+|---|---|
+| **Bundesland** | Neue Auswahl in Schritt 1 (Standard: Baden-Württemberg). Steuert die Schularten des Landes (z. B. Mittelschule in Bayern, Berufskolleg in NRW, Stadtteilschule in Hamburg), die Fächer (BW-Fächer wie BNT, AES, NWT nur in BW; sonst z. B. Naturwissenschaften, Politik/Sozialkunde, Arbeitslehre/WAT) und die Rolle im Prompt („… am Gymnasium in Nordrhein-Westfalen (Kernlehrpläne)“). Außerhalb von BW heißen die Leitperspektiven „Querschnittsthema“ (zusätzlich Demokratiebildung). Sprachprofil und Artikel („am/an der“) gelten für alle Schulformen. |
+| **Erklärungen** | Knopf ⓘ neben jeder didaktischen Einstellung (Anforderungsniveau, Sprachniveau, Anforderungsbereich, Distraktoren, falsche Wörter, Feedback, Tipps, Lernziel, Leitperspektive/Querschnittsthema, Szenario, Bundesland). Klick öffnet die Erklärung darunter, Escape schließt; per Tastatur und Screenreader bedienbar (kein Hover-Tooltip, der auf Tablets nicht funktioniert). |
+| **Szenario** | Unter der Auswahl steht, was der Modus bewirkt (Übungsmodus: Wiederholen, Lösungen, Erklärungen zu falschen Antworten; Testmodus: ohne Hilfen, Hinweise zu Moodle-Bewertung und Versuchen). Im Testmodus ist „Hilfestellungen (Tipps)“ gesperrt – vorher widersprach die Einstellung der Prompt-Regel „keine Tipps“. |
+
+**Testergebnis V.1.2:** E2E 157/157 (neu: Bundesland im Prompt, Schularten/Fächer NRW, Erklär-Knöpfe, Szenario); 61 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] Schularten und Lehrplan-Bezeichnungen der Länder von Lehrkräften aus den Ländern gegenlesen lassen.
+
+### Weitere Vorschläge für die didaktischen Einstellungen (noch nicht umgesetzt)
+
+1. **Voreinstellungen (Presets)** – ein Klick setzt passende Werte: „Einstieg/Vorwissen aktivieren“ (AFB I, Feedback motivierend), „Üben“ (gemischt, Tipps, Lösungen), „Lernkontrolle“ (Testmodus, AFB gemischt, keine Tipps), „Hausaufgabe“.
+2. ~~**Drittes Szenario „Selbstlernen“**~~ – umgesetzt in V.1.3.
+3. **Sprachsensibler Unterricht** – Option „Einfache Sprache / sprachsensibel“: Wortspeicher mit Fachbegriffen im Aufgabentext, Satzanfänge, Verzicht auf Nebensätze; unabhängig vom Anforderungsniveau.
+4. ~~**Vorwissen und Unterrichtsphase**~~ – umgesetzt in V.1.3.
+5. ~~**Kompetenzbezug**~~ – umgesetzt in V.1.3.
+6. **Zeitrahmen** – „ca. 10 / 20 / 45 Minuten“; die KI wählt den Umfang passend (ersetzt Zahlenfelder für Laien).
+7. **Gruppierung der Einstellungen** in drei aufklappbare Bereiche: *Niveau* (Anforderungsniveau, AFB, Sprachniveau, drei Niveaus), *Rückmeldung* (Feedback, Stil, Tipps, Szenario), *Bezug* (Lernziel, Querschnittsthema, Kompetenz) – weniger Überforderung beim ersten Besuch.
+8. **Österreich und Schweiz** – Auswahl um AT/CH erweitern (Schulformen, Lehrplan 21, Klassenbezeichnungen).
+
+## V.1.3 „Didaktik erweitert“ ✅
+
+| Vorhaben | Umsetzung |
+|---|---|
+| **Szenario „Selbstlernen“** | Drittes Szenario für Lernen ohne Lehrkraft (Hausaufgabe, Vertretung): Wiederholen und Lösung anzeigen wie im Übungsmodus; „Feedback anzeigen“ und – bei Lückentexten – „Tipps“ werden eingeschaltet; der Prompt verlangt zu jeder Antwort, auch zu richtigen, eine kurze Begründung und Tipps als Denkanstoß ohne Lösung. |
+| **Unterrichtsphase** | Einstieg, Erarbeitung, Sicherung, Wiederholung – je Phase eine eigene Anweisung im Prompt (z. B. Sicherung: keine neuen Inhalte; Wiederholung: vermischte Abrufaufgaben). |
+| **Kompetenz aus dem Lehrplan** | Optionales Freitextfeld; der Prompt richtet Aufgaben und Rückmeldungen auf diese Kompetenz aus. |
+| **Vorwissen der Klasse** | Optionales Freitextfeld; der Prompt verlangt, daran anzuknüpfen und nichts darüber hinaus vorauszusetzen. |
+| **Fächer BW** | IMP entfernt (gibt es nicht mehr), dafür „Informatik/Medienbildung“. |
+| **Genauere Erklärungen** | Alle Erklärtexte machen deutlich: Der Wizard ruft keine KI auf – Erklärungen, Tipps und Rückmeldungen verlangt der Prompt beim Erstellen; danach stehen sie fest in der H5P-Datei. |
+
+**Testergebnis V.1.3:** E2E 161/161 (neu: Selbstlernen schaltet Feedback/Tipps ein und ergänzt den Prompt, Wiederholen/Lösungen im Paket, Phase/Kompetenz/Vorwissen im Prompt, BW-Fächer); 62 Testpakete ohne Validator-Fehler.
+
