@@ -16,6 +16,10 @@ fünf Schritten (Grundlagen → Inhaltstyp → Didaktik → Prompt → Export). 
 | Packer | `sanitizeJSON`, `mapToH5PStructure()`, `packBtn`-Handler, `libPatches`, `findLib` | KI-JSON → `content/content.json` + `h5p.json` |
 | Cache | IndexedDB `H5PWizardCache` | Templates (.h5p) |
 
+**Einsatzszenario:** Wizard und Vorlagen liegen auf WordPress (ws-lab.de), die erzeugten Dateien werden in **Moodle**
+hochgeladen – meist von Lehrkräften ohne Recht, Bibliotheken zu installieren. Jede verlangte Bibliotheksversion
+muss daher in Moodle bereits installiert sein. Upload-Tests immer in Moodle mit Lehrkraft-Rolle.
+
 Analyse & Befundliste: `docs/ANALYSE.md` (Stand 2026-10). Phasen und Status: `docs/UMSETZUNGSPLAN.md`.
 Lies beide vor größeren Änderungen. Neue Versionen entstehen als Kopie der letzten Datei mit neuer Nummer
 (`H5P-Wizard (V.x.y.z).html`); ältere Versionen bleiben im Repo.

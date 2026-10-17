@@ -4,7 +4,10 @@ Grundlage: [`docs/ANALYSE.md`](ANALYSE.md) (Befunde und Vorschläge, Stand 16.10
 Ausgangsversion: **V.0.9.6.2** (= V.0.9.6 ohne „Eigene Bilder“ für Karten).
 
 Jede Phase endet mit:
-`e2e-harness.mjs` ohne FAIL · `validate-h5p.py` ohne ERROR · manueller Upload-Test auf der Zielplattform (WordPress/Moodle).
+`e2e-harness.mjs` ohne FAIL · `validate-h5p.py` ohne ERROR · manueller Upload-Test in **Moodle** (Zielplattform) mit einem Konto in der **Lehrkraft-Rolle**.
+
+**Einsatzszenario:** Der Wizard und die Vorlagen (.h5p) liegen auf WordPress (ws-lab.de); die erzeugten H5P-Dateien werden in **Moodle** hochgeladen.
+Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standard: nur Manager/Admins) können eine H5P-Datei nur hochladen, wenn **alle** darin verlangten Bibliotheksversionen bereits in Moodle installiert sind. Die Versionen stammen aus den WordPress-Vorlagen – weichen sie von Moodles installierten Versionen ab, scheitert der Upload für Lehrkräfte, während er für Admins funktioniert. Deshalb mit Lehrkraft-Rolle testen.
 
 | Phase | Version | Ziel | Status |
 |---|---|---|---|
@@ -41,7 +44,8 @@ Jede Phase endet mit:
 **Testergebnis V.0.9.7:** E2E 58/58 bestanden (V.0.9.6: 15/33); alle 18 Testpakete ohne Validator-Fehler.
 
 **Offen in Phase 1:**
-- [ ] Upload-Test der echten Templates von ws-lab.de (aus der Testumgebung nicht erreichbar): für jeden Typ eine Datei erzeugen und in WordPress hochladen. Besonders prüfen: Page, Accordion, Crossword, Timeline, Complex Blanks (früher `libPatches`) sowie MC/TF mit mehreren Fragen (benötigt Question-Set-Template mit MultiChoice **und** TrueFalse).
+- [ ] Upload-Test der echten Templates von ws-lab.de (aus der Testumgebung nicht erreichbar): Dateien erzeugen und als Lehrkraft in Moodle hochladen. Nicht jeder Typ ist nötig – vorrangig die mit geändertem Packer: Page, Accordion, Crossword, Timeline, Complex Blanks (früher `libPatches`), MC/TF mit mehreren Fragen (benötigt Question-Set-Template mit MultiChoice **und** TrueFalse), Question Set, Interactive Video.
+- [ ] Abgleich der Bibliotheksversionen: Moodle → Website-Administration → H5P → „H5P-Inhaltstypen verwalten“ mit den Versionen in den WordPress-Vorlagen vergleichen (Werkzeug: `python3 .claude/skills/h5p-wizard-dev/scripts/validate-h5p.py datei.h5p --libs` listet die verlangten Versionen). Bei Abweichungen entweder Moodle-Bibliotheken aktualisieren oder die Vorlagen aus Moodle exportieren (Inhaltsspeicher → Herunterladen) und auf WordPress ablegen.
 - [ ] Prüfen, ob das Question-Set-Template `H5P.TrueFalse` enthält – sonst Template neu exportieren.
 
 ---
@@ -63,7 +67,7 @@ Jede Phase endet mit:
 **Offen in Phase 2:**
 - [ ] Upload-Test mit den echten Templates – insbesondere prüfen, dass die **deutschen Beschriftungen** ankommen und keine Beispielinhalte der Templates auftauchen.
 - [ ] Font Awesome selbst hosten (DSGVO): Dateien von fontawesome.com nach `ws-lab.de/wp-content/uploads/…` legen und den `<link>` umstellen – braucht Zugriff auf den Server. Die Prüfsumme (SRI) für cdnjs konnte aus der Testumgebung nicht verifiziert werden.
-- [ ] Interactive Video: Positionen/Größe der Fragen – nur mit echter Darstellung in WordPress sinnvoll zu justieren (x/y in %, Breite/Höhe in em); bisher x = y = 50 %.
+- [ ] Interactive Video: Positionen/Größe der Fragen – nur mit echter Darstellung in Moodle sinnvoll zu justieren (x/y in %, Breite/Höhe in em); bisher x = y = 50 %.
 - [ ] Die WordPress-Bibliotheksablage `ws-lab.de/wp-content/uploads/2026/Libs/` (jszip, FileSaver) wird nicht mehr benötigt.
 
 ## Phase 3 – V.0.11 „Prompts“

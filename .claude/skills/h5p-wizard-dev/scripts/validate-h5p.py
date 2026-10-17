@@ -216,7 +216,16 @@ def main():
     ap.add_argument("package")
     ap.add_argument("--semantics-dir")
     ap.add_argument("--json", action="store_true", help="Bericht als JSON ausgeben")
+    ap.add_argument("--libs", action="store_true",
+                    help="nur die verlangten Bibliotheksversionen auflisten (zum Abgleich mit Moodle)")
     a = ap.parse_args()
+
+    if a.libs:
+        with zipfile.ZipFile(a.package) as zf:
+            meta = json.loads(zf.read("h5p.json").decode("utf-8"))
+        for d in sorted(meta.get("preloadedDependencies", []), key=lambda d: d.get("machineName", "")):
+            print(f"{d.get('machineName')} {d.get('majorVersion')}.{d.get('minorVersion')}")
+        return 0
 
     rep = Report()
     with zipfile.ZipFile(a.package) as zf:
