@@ -473,6 +473,52 @@ if (await page.$('#themeBtn')) {
   } catch (e) { record('a11y/design/eingaben', false, e.message.split('\n')[0]); }
 }
 
+// ---------- 6) Bundesland, Erklärungen, Szenario (ab V.1.2) ----------
+if (await page.$('#bundesland')) {
+  try {
+    await page.evaluate(() => navigateTo(1));
+    await page.selectOption('#schulart', 'Gymnasium');
+    await selectFach(page, 'Biologie');
+    await page.selectOption('#klasse', '8');
+    await selectType('t-mc');
+    await page.evaluate(() => navigateTo(4));
+    await page.click('#genBtn');
+    let p = await page.evaluate(() => window.__prompts.at(-1));
+    record('bundesland:Standard BW im Prompt', await page.$eval('#bundesland', e => e.value) === 'BW' && /am Gymnasium in Baden-Württemberg \(Bildungsplan 2016\)/.test(p), (p.match(/Du bist[^\n]*/) || [''])[0]);
+    await page.evaluate(() => navigateTo(1));
+    await page.selectOption('#bundesland', 'NW');
+    const nw = await page.evaluate(() => ({ schularten: Array.from(document.querySelectorAll('#schulart option')).map(o => o.value), faecher: Array.from(document.querySelectorAll('#fach option')).map(o => o.value),
+      schulart: document.getElementById('schulart').value, fach: document.getElementById('fach').value, leitLabel: document.querySelector('label[for="leitperspektive"]').textContent,
+      leit: Array.from(document.querySelectorAll('#leitperspektive option')).map(o => o.value) }));
+    record('bundesland:NRW Schularten/Fächer', nw.schularten.includes('Berufskolleg') && !nw.schularten.includes('Werkreal-/Hauptschule') && !nw.faecher.includes('BNT') && nw.faecher.includes('Politik')
+      && nw.schulart === 'Gymnasium' && nw.fach === 'Biologie' && /Querschnittsthema/.test(nw.leitLabel) && nw.leit.includes('DB'), JSON.stringify(nw).slice(0, 200));
+    await page.selectOption('#schulart', 'Gesamtschule');
+    await page.evaluate(() => { document.getElementById('leitperspektive').value = 'DB'; navigateTo(4); });
+    await page.click('#genBtn');
+    p = await page.evaluate(() => window.__prompts.at(-1));
+    record('bundesland:NRW im Prompt', /an der Gesamtschule in Nordrhein-Westfalen \(Kernlehrpläne\)/.test(p) && /Querschnittsthema DB \(Demokratiebildung\)/.test(p) && /differenzierende Zugänge/.test(p), (p.match(/Du bist[^\n]*/) || [''])[0]);
+    // Erklär-Knopf: klappt Text auf, Escape schließt
+    await page.evaluate(() => { document.getElementById('leitperspektive').value = ''; navigateTo(3); });
+    await page.click('button[aria-controls="tip-h5p-behaviour"]');
+    const tipOpen = await page.$eval('#tip-h5p-behaviour', e => !e.hidden && /Übungsmodus/.test(e.textContent));
+    await page.keyboard.press('Escape');
+    const tipClosed = await page.$eval('#tip-h5p-behaviour', e => e.hidden);
+    const tipCount = await page.$$eval('button.info-tip', b => b.length);
+    record('erklaerungen:Knopf öffnet/schließt', tipOpen && tipClosed && tipCount >= 10, 'Knöpfe: ' + tipCount);
+    // Szenario: Beschreibung wechselt, Tipps im Testmodus aus
+    await selectType('t-blanks');
+    await page.evaluate(() => { const h = document.getElementById('enable-hints'); h.checked = true; });
+    await page.selectOption('#h5p-behaviour', 'test');
+    const test = await page.evaluate(() => ({ desc: document.getElementById('scenario-desc').textContent, hintsDisabled: document.getElementById('enable-hints').disabled, hints: document.getElementById('enable-hints').checked }));
+    await page.selectOption('#h5p-behaviour', 'practice');
+    const practice = await page.evaluate(() => ({ desc: document.getElementById('scenario-desc').textContent, hintsDisabled: document.getElementById('enable-hints').disabled }));
+    record('szenario:Beschreibung und Tipps', /Lernstandskontrollen/.test(test.desc) && test.hintsDisabled && !test.hints && /selbstständiges Üben/.test(practice.desc) && !practice.hintsDisabled, JSON.stringify({ test, practice }).slice(0, 200));
+    await page.evaluate(() => navigateTo(1));
+    await page.selectOption('#bundesland', 'BW');
+    await page.selectOption('#schulart', 'Gymnasium');
+  } catch (e) { record('bundesland/erklaerungen/szenario', false, e.message.split('\n')[0]); }
+}
+
 record('keine JavaScript-Fehler', pageErrors.length === 0, pageErrors.join(' | '));
 await browser.close();
 
