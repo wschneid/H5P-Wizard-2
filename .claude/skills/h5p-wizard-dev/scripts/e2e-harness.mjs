@@ -500,7 +500,7 @@ if (await page.$('#bundesland')) {
     // Erklär-Knopf: klappt Text auf, Escape schließt
     await page.evaluate(() => { document.getElementById('leitperspektive').value = ''; navigateTo(3); });
     await page.click('button[aria-controls="tip-h5p-behaviour"]');
-    const tipOpen = await page.$eval('#tip-h5p-behaviour', e => !e.hidden && /Übungsmodus/.test(e.textContent));
+    const tipOpen = await page.$eval('#tip-h5p-behaviour', e => !e.hidden && e.textContent.length > 40);
     await page.keyboard.press('Escape');
     const tipClosed = await page.$eval('#tip-h5p-behaviour', e => e.hidden);
     const tipCount = await page.$$eval('button.info-tip', b => b.length);
@@ -512,10 +512,31 @@ if (await page.$('#bundesland')) {
     const test = await page.evaluate(() => ({ desc: document.getElementById('scenario-desc').textContent, hintsDisabled: document.getElementById('enable-hints').disabled, hints: document.getElementById('enable-hints').checked }));
     await page.selectOption('#h5p-behaviour', 'practice');
     const practice = await page.evaluate(() => ({ desc: document.getElementById('scenario-desc').textContent, hintsDisabled: document.getElementById('enable-hints').disabled }));
-    record('szenario:Beschreibung und Tipps', /Lernstandskontrollen/.test(test.desc) && test.hintsDisabled && !test.hints && /selbstständiges Üben/.test(practice.desc) && !practice.hintsDisabled, JSON.stringify({ test, practice }).slice(0, 200));
+    record('szenario:Beschreibung und Tipps', /Lernstandskontrollen/.test(test.desc) && test.hintsDisabled && !test.hints && /wiederholen/i.test(practice.desc) && !practice.hintsDisabled, JSON.stringify({ test, practice }).slice(0, 200));
+    // ab V.1.3: Selbstlernen, Unterrichtsphase, Vorwissen, Kompetenz
+    if (await page.$('#unterrichtsphase')) {
+      await page.evaluate(() => { document.getElementById('enable-feedback').checked = false; });
+      await page.selectOption('#h5p-behaviour', 'selfstudy');
+      const self = await page.evaluate(() => ({ fb: document.getElementById('enable-feedback').checked, hints: document.getElementById('enable-hints').checked, desc: document.getElementById('scenario-desc').textContent }));
+      await page.selectOption('#unterrichtsphase', 'sicherung');
+      await page.fill('#kompetenz', 'KOMPETENZ-XY');
+      await page.fill('#vorwissen', 'VORWISSEN-XY');
+      await page.evaluate(() => navigateTo(4));
+      await page.click('#genBtn');
+      const pr = await page.evaluate(() => window.__prompts.at(-1));
+      record('selbstlernen:Feedback/Tipps an, Prompt', self.fb && self.hints && /ohne Lehrkraft/.test(self.desc) && /\*\*Selbstlernen:\*\*/.test(pr) && /Tipp zur Lücke/.test(pr), JSON.stringify(self).slice(0, 120));
+      record('prompt:Phase, Kompetenz, Vorwissen', /Unterrichtsphase:\*\* Sicherung/.test(pr) && /„KOMPETENZ-XY“/.test(pr) && /„VORWISSEN-XY“/.test(pr), '');
+      const r = await pack('selbstlernen-lueckentext', 't-blanks', { text: 'Fülle', questions: ['Die *Sonne:Stern* scheint.'] });
+      record('selbstlernen:Wiederholen und Lösungen', r.content?.behaviour?.enableRetry === true && r.content?.behaviour?.enableSolutionsButton === true && /Stern/.test(JSON.stringify(r.content?.questions)), JSON.stringify(r.content?.behaviour || r.validation));
+      await page.evaluate(() => { const b = document.getElementById('h5p-behaviour'); b.value = 'practice'; b.dispatchEvent(new Event('change')); ['unterrichtsphase', 'kompetenz', 'vorwissen'].forEach(id => { document.getElementById(id).value = ''; }); });
+    }
     await page.evaluate(() => navigateTo(1));
     await page.selectOption('#bundesland', 'BW');
     await page.selectOption('#schulart', 'Gymnasium');
+    if (await page.$('#unterrichtsphase')) {
+      const bwFaecher = await page.$$eval('#fach option', o => o.map(x => x.value));
+      record('fach:BW ohne IMP, mit Informatik/Medienbildung', !bwFaecher.includes('IMP') && bwFaecher.includes('Informatik/Medienbildung'), '');
+    }
   } catch (e) { record('bundesland/erklaerungen/szenario', false, e.message.split('\n')[0]); }
 }
 
