@@ -9,7 +9,7 @@ Ziel: Ein Prompt, den jedes gängige Modell (ChatGPT, Gemini, Claude, telli, fob
 
 ## Aufbau (feste Reihenfolge)
 1. **Rolle & Kontext** – Fachlehrkraft für {Fach}, {Schulart} (korrekter Artikel: „am Gymnasium“, „an der Realschule“),
-   Klasse {n}, Bildungsplan Baden-Württemberg 2016 (Schularten deuten auf BW).
+   Klasse {n}, Lehrplan des gewählten Bundeslands (BW: „Bildungsplan“, ohne Jahreszahl).
 2. **Auftrag** – Thema + Anweisung der Lehrkraft **oben**, nicht erst am Ende.
 3. **Quelle** – Basistext in `"""…"""`. Regel: *Wenn ein Basistext vorliegt, nur Inhalte verwenden, die sich daraus belegen lassen.*
 4. **Didaktik** – Niveau, Anforderungsbereich (AFB I–III / Operatoren), Sprachniveau, Lernzieltyp, Feedback-Stil.
@@ -24,7 +24,6 @@ Ziel: Ein Prompt, den jedes gängige Modell (ChatGPT, Gemini, Claude, telli, fob
 - **Mengen nur aus sichtbaren, typeigenen Feldern**; Einzelaufgaben (True/False, Guess the Answer) ohne „Exakt N Fragen“
   – oder als Liste erzeugen und im Packer in ein Question Set/Column verpacken.
 - **Zielsprache** für alle schülersichtbaren Texte inkl. Feedback; Anweisung an die KI bleibt deutsch.
-- **Geschlechtergerechte, diskriminierungsfreie Sprache**, diverse Namen/Beispiele; „Schülerinnen und Schüler“.
 - **Faktentreue**: keine erfundenen Zahlen/Zitate; bei Unsicherheit weglassen. Jahreszahlen/Fachbegriffe prüfen.
 - **Positionsbias vermeiden**: Bei MC die richtige Antwort nicht immer zuerst (H5P mischt zwar, aber das KI-Modell
   formuliert sonst die richtige Antwort oft länger/präziser) – „Alle Optionen ähnlich lang und gleich präzise“.

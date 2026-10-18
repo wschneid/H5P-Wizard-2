@@ -1214,7 +1214,7 @@ document.querySelectorAll('.progress-step').forEach(el => {
 
 // ----- Bundesländer -----
 const LAENDER = {
-    BW: { name: 'Baden-Württemberg', plan: 'Bildungsplan 2016', schularten: ['Grundschule', 'Werkreal-/Hauptschule', 'Realschule', 'Gemeinschaftsschule', 'Gymnasium', 'Berufliche Schule', 'SBBZ'] },
+    BW: { name: 'Baden-Württemberg', plan: 'Bildungsplan', schularten: ['Grundschule', 'Werkreal-/Hauptschule', 'Realschule', 'Gemeinschaftsschule', 'Gymnasium', 'Berufliche Schule', 'SBBZ'] },
     BY: { name: 'Bayern', plan: 'LehrplanPLUS', schularten: ['Grundschule', 'Mittelschule', 'Realschule', 'Wirtschaftsschule', 'Gymnasium', 'Berufliche Schule', 'Förderzentrum'] },
     BE: { name: 'Berlin', plan: 'Rahmenlehrplan', schularten: ['Grundschule', 'Integrierte Sekundarschule', 'Gemeinschaftsschule', 'Gymnasium', 'Berufliche Schule', 'Förderzentrum'] },
     BB: { name: 'Brandenburg', plan: 'Rahmenlehrplan', schularten: ['Grundschule', 'Oberschule', 'Gesamtschule', 'Gymnasium', 'Berufliche Schule', 'Förderschule'] },
@@ -2173,7 +2173,6 @@ function generatePrompt() {
     if (!s.threeLevels && AFB_INFO[s.afb]) add('* **Anforderungsbereich:** ' + AFB_INFO[s.afb].label + ' – Operatoren: ' + AFB_INFO[s.afb].ops + '. ' + AFB_INFO[s.afb].hint);
     if (!s.threeLevels && s.afb === 'mixed') add('* **Anforderungsbereiche gemischt:** ca. 40 % AFB I (' + AFB_INFO.I.ops + '), 40 % AFB II (' + AFB_INFO.II.ops + '), 20 % AFB III (' + AFB_INFO.III.ops + ').');
     if (s.leit && LEITPERSPEKTIVEN[s.leit]) add('* **' + (s.land === LAENDER.BW ? 'Leitperspektive ' : 'Querschnittsthema ') + s.leit + ' (' + LEITPERSPEKTIVEN[s.leit] + '):** Wähle – wo fachlich passend – Beispiele und Kontexte aus diesem Bereich; keine erzwungenen Bezüge.');
-    add('* Geschlechtergerechte Sprache, vielfältige Namen und Lebenswelten, keine Stereotype.');
     if (s.testMode) add('* **Testmodus:** Keine Tipps oder Lösungshinweise in Fragen und Antworten.');
     if (s.selfStudy) add('* **Selbstlernen:** Die Lernenden arbeiten ohne Lehrkraft. Jede Rückmeldung erklärt in 1–2 Sätzen, warum eine Antwort richtig oder falsch ist; Tipps geben Denkanstöße, ohne die Lösung zu verraten.');
     if (s.feedbackEnabled && !['Multiple Choice', 'Question Set', 'True False', 'Complex Fill in the Blanks', 'Interactive Video', 'Page', 'Interactive Book', 'Course Presentation'].includes(s.type)) add('* **Feedback:** Gesamtrückmeldungen erzeugt H5P automatisch – nichts ins JSON schreiben.');

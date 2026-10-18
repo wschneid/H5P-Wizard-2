@@ -564,7 +564,7 @@ if (await page.$('#bundesland')) {
     await page.evaluate(() => navigateTo(4));
     await page.click('#genBtn');
     let p = await page.evaluate(() => window.__prompts.at(-1));
-    record('bundesland:Standard BW im Prompt', await page.$eval('#bundesland', e => e.value) === 'BW' && /am Gymnasium in Baden-Württemberg \(Bildungsplan 2016\)/.test(p), (p.match(/Du bist[^\n]*/) || [''])[0]);
+    record('bundesland:Standard BW im Prompt', await page.$eval('#bundesland', e => e.value) === 'BW' && /am Gymnasium in Baden-Württemberg \(Bildungsplan\)/.test(p), (p.match(/Du bist[^\n]*/) || [''])[0]);
     await page.evaluate(() => navigateTo(1));
     await page.selectOption('#bundesland', 'NW');
     const nw = await page.evaluate(() => ({ schularten: Array.from(document.querySelectorAll('#schulart option')).map(o => o.value), faecher: Array.from(document.querySelectorAll('#fach option')).map(o => o.value),
