@@ -1221,7 +1221,10 @@ const FAECHER = [
 ].map(([value, label, bw]) => ({ value, label, bw }));
 // Lehrplanbezug im Prompt. Baden-Württemberg: Bildungsplan 2016 in den überarbeiteten Fassungen;
 // Gymnasium seit 2025/26 wieder neunjährig (G9), aufwachsend ab Klasse 5 und 6 – höhere Klassen noch G8.
+// Fachpläne V3.0 des Gymnasiums (Fassungen März–Mai 2026) gelten seit 1. August 2026 für die Klassen 5–7, danach aufwachsend
+// (bildungsplaene-bw.de/,Lde/30823695). Fächer mit bestätigter V3.0-Fassung:
 const G9_START = 2025;
+const GYM_V3_FAECHER = ['Deutsch', 'Mathematik', 'Englisch', 'Biologie', 'Chemie', 'Physik', 'Geographie', 'Geschichte', 'Bildende Kunst'];
 function schuljahrBeginn(d = new Date()) { return d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1; }  // Schuljahr beginnt am 1. August
 function lehrplan(s) {
     if (s.land !== LAENDER.BW) return { name: s.land.plan, hint: '' };
@@ -1231,7 +1234,7 @@ function lehrplan(s) {
     if (/Werkreal|Realschule|Gemeinschaftsschule/.test(s.schulart)) return { name: 'Gemeinsamer Bildungsplan der Sekundarstufe I 2016 in der aktuell gültigen Fassung' + v2, hint: '' };
     if (s.schulart === 'Gymnasium') {
         const g9Bis = 6 + (schuljahrBeginn() - G9_START);  // höchste Klassenstufe, die schon G9 ist
-        if (!kl || kl <= g9Bis) return { name: 'Bildungsplan 2016 in der überarbeiteten Fassung für das neunjährige Gymnasium (G9)',
+        if (!kl || kl <= g9Bis) return { name: 'Bildungsplan 2016 des Gymnasiums, ' + (GYM_V3_FAECHER.includes(s.fach) ? 'Fachplan ' + s.fach + ' in der überarbeiteten Fassung V3.0 von 2026' : 'Fachplan in der aktuell gültigen Fassung') + ', neunjähriges Gymnasium (G9)',
             hint: 'Im G9 sind die Inhalte auf mehr Schuljahre verteilt als im früheren G8: Setze nur voraus, was nach dem G9-Plan bis Klasse ' + (kl ? kl - 1 : 'zur aktuellen Klasse') + ' behandelt wurde, und wähle Umfang und Tiefe für Klasse ' + (kl || s.klasse) + ' im G9.' };
         return { name: 'Bildungsplan 2016 für das achtjährige Gymnasium (G8, auslaufend)', hint: '' };
     }
@@ -1240,7 +1243,7 @@ function lehrplan(s) {
     return { name: 'Bildungsplan 2016 in der aktuell gültigen Fassung', hint: '' };
 }
 // Querschnittsthemen: in BW die Leitperspektiven des Bildungsplans, sonst länderübergreifende Themen (KMK)
-const THEMEN_BW = ['BNE', 'BTV', 'PG', 'BO', 'MB', 'VB'];
+const THEMEN_BW = ['BNE', 'BTV', 'PG', 'BO', 'LDW', 'VB'];  // V3.0 (2026): Medienbildung → LDW
 const THEMEN_ANDERE = ['BNE', 'MB', 'DB', 'BTV', 'PG', 'BO', 'VB'];
 function currentLand() { return LAENDER[document.getElementById('bundesland').value] || LAENDER.BW; }
 function fillSelect(sel, items, placeholder) {
@@ -1520,7 +1523,7 @@ const AFB_BY_GOAL = { vocabulary: 'I', factual: 'I', grammar: 'II', reading: 'II
 const LEITPERSPEKTIVEN = {
     BNE: 'Bildung für nachhaltige Entwicklung', BTV: 'Bildung für Toleranz und Akzeptanz von Vielfalt',
     PG: 'Prävention und Gesundheitsförderung', BO: 'Berufliche Orientierung', MB: 'Medienbildung', VB: 'Verbraucherbildung',
-    DB: 'Demokratiebildung',
+    DB: 'Demokratiebildung', LDW: 'Leben und Lernen in der digitalen Welt (früher Medienbildung)',
 };
 // Typen, deren Einträge optional mit "afb" gekennzeichnet werden
 const AFB_ITEM_TYPES = ['Multiple Choice', 'Question Set', 'Single Choice Set', 'True False', 'Interactive Video'];
@@ -3411,7 +3414,9 @@ function restoreFormStateInner() {
     (state.blockOrder || []).forEach(b => { const el = list.querySelector('[data-block="' + b + '"]'); if (el) list.appendChild(el); });
     formFields().forEach(el => {
         if (!(el.id in state.fields)) return;
-        const v = state.fields[el.id];
+        let v = state.fields[el.id];
+        // gespeicherte Leitperspektive „MB“ (bis V.1.4) heißt in BW jetzt „LDW“
+        if (el.id === 'leitperspektive' && v === 'MB' && !el.querySelector('option[value="MB"]')) v = 'LDW';
         if (el.type === 'radio') { if (v && !el.checked) { el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); } return; }
         if (el.type === 'checkbox') { if (el.checked !== !!v) { el.checked = !!v; el.dispatchEvent(new Event('change', { bubbles: true })); } return; }
         if (el.value !== v) { el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }

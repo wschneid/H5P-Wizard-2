@@ -548,7 +548,11 @@ if (await page.$('#bundesland')) {
     };
     const role = t => (t.match(/Du bist[^\n]*\n[^\n#]*/) || [''])[0];
     const p5 = await promptFor('Gymnasium', 'Biologie', '5');
-    record('bildungsplan:Gymnasium Klasse 5 = G9', /\(Bildungsplan 2016 in der überarbeiteten Fassung für das neunjährige Gymnasium \(G9\)\)/.test(p5) && /nach dem G9-Plan bis Klasse 4/.test(p5), role(p5));
+    record('bildungsplan:Gymnasium Klasse 5 = G9 (V3.0)', /\(Bildungsplan 2016 des Gymnasiums, Fachplan Biologie in der überarbeiteten Fassung V3\.0 von 2026, neunjähriges Gymnasium \(G9\)\)/.test(p5) && /nach dem G9-Plan bis Klasse 4/.test(p5), role(p5));
+    const pk = await promptFor('Gymnasium', 'Gemeinschaftskunde', '6');
+    record('bildungsplan:Gymnasium Fach ohne V3.0', /Fachplan in der aktuell gültigen Fassung, neunjähriges Gymnasium \(G9\)/.test(pk), role(pk));
+    const leit = await page.$$eval('#leitperspektive option', o => o.map(x => x.value + '|' + x.textContent));
+    record('leitperspektive:BW LDW statt MB', leit.some(x => /^LDW\|LDW – Leben und Lernen in der digitalen Welt/.test(x)) && !leit.some(x => x.startsWith('MB|')), leit.join(', '));
     const p8 = await promptFor('Gymnasium', 'Biologie', '8');
     record('bildungsplan:Gymnasium Klasse 8 = ' + (8 <= g9Bis ? 'G9' : 'G8'), 8 <= g9Bis ? /\(G9\)/.test(p8) : /achtjährige Gymnasium \(G8, auslaufend\)/.test(p8) && !/G9-Plan/.test(p8), role(p8));
     const pg = await promptFor('Grundschule', 'Deutsch', '3');
