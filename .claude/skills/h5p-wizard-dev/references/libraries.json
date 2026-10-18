@@ -207,7 +207,8 @@
       "repo": "h5p/h5p-table",
       "release": "1.2.2",
       "master": "1.2.8",
-      "inWizard": false
+      "inWizard": true,
+      "wizard": "1.2"
     },
     "H5P.Chart": {
       "repo": "h5p/h5p-chart",
