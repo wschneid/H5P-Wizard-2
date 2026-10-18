@@ -22,6 +22,7 @@ Wichtig: Lehrkräfte ohne die Berechtigung `moodle/h5p:updatelibraries` (Standar
 | 7 | **V.1.2** | Bundesland-Auswahl, Erklärungen zu den didaktischen Einstellungen, Szenario-Beschreibung | ✅ umgesetzt |
 | 8 | **V.1.3** | Szenario „Selbstlernen“, Unterrichtsphase, Vorwissen, Kompetenzbezug; Informatik/Medienbildung (BW) | ✅ umgesetzt |
 | 9 | **V.1.4** | Neue Inhaltstypen Bingo (mit Vorleseliste), Structure Strip (Schreibgerüst) und Speak the Words Set (Sprechaufgaben) | ✅ umgesetzt, Upload-Test offen |
+| 10 | **V.1.5** | Lehrplanbezug Baden-Württemberg (G9, überarbeitete Fassungen), keine Genderformen | ✅ umgesetzt |
 
 ---
 
@@ -219,3 +220,18 @@ Anlass: Prüfung, welche weiteren Inhaltstypen sich sinnvoll integrieren lassen 
 - [ ] In Moodle prüfen, ob **H5P.Bingo 0.3** und **H5P.StructureStrip** installiert sind (Website-Administration → H5P → H5P-Inhaltstypen verwalten). Bingo hat auf GitHub keinen Release-Zweig (Version 0.x) – ob es über den H5P-Hub angeboten wird, konnte aus der Testumgebung nicht geprüft werden (h5p.org nicht erreichbar). Fehlt es, muss die Administration die Bibliothek einmalig hochladen. Structure Strip: Standard ist 1.0 (GitHub-Release); ist in Moodle 1.1 installiert, die Version über „Versionen aus H5P-Datei übernehmen“ oder von Hand anpassen.
 - [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Bingo 4 × 4 mit 20 Begriffen (Darstellung langer Begriffe auf dem Tablet), Structure Strip mit 4 Abschnitten, Speak the Words Set in Chrome, Edge und Safari/iPad (Mikrofonfreigabe im Moodle-iframe, Erkennungsqualität).
 - [ ] Datenschutz Speak the Words: Einsatz mit der/dem Datenschutzbeauftragten der Schule klären (Sprachaufnahmen gehen an Google/Microsoft/Apple).
+
+## V.1.5 „Lehrplanbezug BW, Sprache“ ✅
+
+Dateiname V.1.5; im Fuß des Wizards steht auf Wunsch **V.1.0**.
+
+| Vorhaben | Umsetzung |
+|---|---|
+| **Bildungsplan BW** | Statt fest „Bildungsplan 2016“ nennt die Rolle im Prompt den gültigen Plan je Schulart, Fach und Klasse (`lehrplan()`): **Gymnasium** – seit 2025/26 wieder neunjährig, aufwachsend ab Klasse 5 und 6; Klassen im G9 erhalten „Bildungsplan 2016 in der überarbeiteten Fassung für das neunjährige Gymnasium (G9)“ plus die Anweisung, nur vorauszusetzen, was nach dem G9-Plan bis zur Vorklasse behandelt wurde (die Inhalte sind auf mehr Schuljahre verteilt). Höhere Klassen: „Bildungsplan 2016 für das achtjährige Gymnasium (G8, auslaufend)“. Die Grenze wächst automatisch mit dem Schuljahr (Wechsel am 1. August; 2026/27: G9 bis Klasse 7). **Grundschule** und **Sekundarstufe I** (Werkreal-, Realschule, Gemeinschaftsschule): Deutsch und Mathematik „in der überarbeiteten Fassung von 2024“; Sek I „Gemeinsamer Bildungsplan der Sekundarstufe I 2016 in der aktuell gültigen Fassung“. Berufliche Schulen und SBBZ mit eigener Bezeichnung. |
+| **Keine Genderformen** | Oberfläche: „Autor“ statt „Autor:in“, „Jeder Schüler“ statt „Jede:r“. Prompt: Regel „Geschlechtergerechte Sprache“ ersetzt durch „Keine Genderformen … generisches Maskulinum“; Selbstprüfung „Kann ein Schüler …“. |
+
+**Testergebnis V.1.5:** E2E 186/186 (neu: Gymnasium Klasse 5 = G9 mit Hinweis zur Stoffverteilung, Klasse 8 = G8 im Schuljahr 2026/27, Grundschule Deutsch und Sek I Mathematik in der Fassung von 2024, keine Genderformen in Prompt und Oberfläche); 71 Testpakete ohne Validator-Fehler.
+
+**Offen:**
+- [ ] Stand der Fachpläne regelmäßig prüfen (bildungsplaene-bw.de → Inkrafttreten): laut Kultusministerium treten weitere G9-Fachpläne (u. a. Deutsch, Mathematik, Fremdsprachen, Geschichte) zum 1. August 2027 in Kraft, Informatik und Medienbildung ebenfalls 2027; zu Gemeinschaftskunde, NIT (Naturwissenschaft, Informatik und Technik) und WBS läuft die Anhörung bis 2. Dezember 2026. Ein neues Fach NIT wäre dann in die Fächerliste aufzunehmen.
+- [ ] Schulen mit G8-Zug: Der Wizard nimmt für Klassen im G9-Bereich immer G9 an; bei Bedarf eine Auswahl G8/G9 ergänzen.

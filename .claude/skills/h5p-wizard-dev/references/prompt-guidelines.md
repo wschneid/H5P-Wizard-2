@@ -24,7 +24,8 @@ Ziel: Ein Prompt, den jedes gängige Modell (ChatGPT, Gemini, Claude, telli, fob
 - **Mengen nur aus sichtbaren, typeigenen Feldern**; Einzelaufgaben (True/False, Guess the Answer) ohne „Exakt N Fragen“
   – oder als Liste erzeugen und im Packer in ein Question Set/Column verpacken.
 - **Zielsprache** für alle schülersichtbaren Texte inkl. Feedback; Anweisung an die KI bleibt deutsch.
-- **Geschlechtergerechte, diskriminierungsfreie Sprache**, diverse Namen/Beispiele; „Schülerinnen und Schüler“.
+- **Keine Genderformen** (kein Sternchen, Doppelpunkt, Unterstrich, Binnen-I, keine Paarformen) – generisches Maskulinum, auch in der Oberfläche des Wizards („Autor“, „Schüler“). Diskriminierungsfrei, vielfältige Namen/Beispiele.
+- **Lehrplanbezug BW**: über `lehrplan()` (Gymnasium G9 aufwachsend ab 2025/26 mit Klassen 5/6, höhere Klassen G8; Deutsch/Mathematik in der Fassung von 2024) – nicht als festen Text „Bildungsplan 2016“.
 - **Faktentreue**: keine erfundenen Zahlen/Zitate; bei Unsicherheit weglassen. Jahreszahlen/Fachbegriffe prüfen.
 - **Positionsbias vermeiden**: Bei MC die richtige Antwort nicht immer zuerst (H5P mischt zwar, aber das KI-Modell
   formuliert sonst die richtige Antwort oft länger/präziser) – „Alle Optionen ähnlich lang und gleich präzise“.

@@ -537,8 +537,29 @@ if (await page.$('#bundesland')) {
     await page.evaluate(() => navigateTo(4));
     await page.click('#genBtn');
     let p = await page.evaluate(() => window.__prompts.at(-1));
-    record('bundesland:Standard BW im Prompt', await page.$eval('#bundesland', e => e.value) === 'BW' && /am Gymnasium in Baden-Württemberg \(Bildungsplan 2016\)/.test(p), (p.match(/Du bist[^\n]*/) || [''])[0]);
+    record('bundesland:Standard BW im Prompt', await page.$eval('#bundesland', e => e.value) === 'BW' && /am Gymnasium in Baden-Württemberg \(Bildungsplan 2016/.test(p), (p.match(/Du bist[^\n]*/) || [''])[0]);
+    // ab V.1.5: G9 aufwachsend ab 2025/26 (Klassen 5 und 6), höhere Klassen G8; keine Genderformen
+    const now = new Date(), g9Bis = 6 + ((now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1) - 2025);
+    const promptFor = async (schulart, fach, klasse) => {
+      await page.evaluate(() => navigateTo(1));
+      await page.selectOption('#schulart', schulart); await selectFach(page, fach); await page.selectOption('#klasse', klasse);
+      await page.evaluate(() => navigateTo(4)); await page.click('#genBtn');
+      return page.evaluate(() => window.__prompts.at(-1));
+    };
+    const role = t => (t.match(/Du bist[^\n]*\n[^\n#]*/) || [''])[0];
+    const p5 = await promptFor('Gymnasium', 'Biologie', '5');
+    record('bildungsplan:Gymnasium Klasse 5 = G9', /\(Bildungsplan 2016 in der überarbeiteten Fassung für das neunjährige Gymnasium \(G9\)\)/.test(p5) && /nach dem G9-Plan bis Klasse 4/.test(p5), role(p5));
+    const p8 = await promptFor('Gymnasium', 'Biologie', '8');
+    record('bildungsplan:Gymnasium Klasse 8 = ' + (8 <= g9Bis ? 'G9' : 'G8'), 8 <= g9Bis ? /\(G9\)/.test(p8) : /achtjährige Gymnasium \(G8, auslaufend\)/.test(p8) && !/G9-Plan/.test(p8), role(p8));
+    const pg = await promptFor('Grundschule', 'Deutsch', '3');
+    record('bildungsplan:Grundschule Deutsch in Fassung 2024', /\(Bildungsplan 2016 der Grundschule, Fachplan Deutsch in der überarbeiteten Fassung von 2024\)/.test(pg), role(pg));
+    const pr = await promptFor('Realschule', 'Mathematik', '7');
+    record('bildungsplan:Sekundarstufe I', /\(Gemeinsamer Bildungsplan der Sekundarstufe I 2016 in der aktuell gültigen Fassung, Fachplan Mathematik/.test(pr), role(pr));
+    record('sprache:keine Genderformen', !/Geschlechtergerecht|:innen|\*innen|Autor:in|Jede:r/.test(p8) && /generische Maskulinum/.test(p8)
+      && await page.$eval('label[for="author"]', e => e.textContent.trim() === 'Autor (optional)')
+      && await page.evaluate(() => !/[a-zäöü](:|\*)(in|innen|r)\b/.test(document.body.innerText)), '');
     await page.evaluate(() => navigateTo(1));
+    await page.selectOption('#schulart', 'Gymnasium'); await selectFach(page, 'Biologie'); await page.selectOption('#klasse', '8');
     await page.selectOption('#bundesland', 'NW');
     const nw = await page.evaluate(() => ({ schularten: Array.from(document.querySelectorAll('#schulart option')).map(o => o.value), faecher: Array.from(document.querySelectorAll('#fach option')).map(o => o.value),
       schulart: document.getElementById('schulart').value, fach: document.getElementById('fach').value, leitLabel: document.querySelector('label[for="leitperspektive"]').textContent,
