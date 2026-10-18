@@ -46,9 +46,9 @@ const DEPS = {
   'sort-paragraphs': ['H5P.SortParagraphs 0.11'],
   'guess-the-answer': ['H5P.GuessTheAnswer 1.5', 'H5P.Image 1.1'],
   'summary': ['H5P.Summary 1.10'],
-  'interactive-video': ['H5P.InteractiveVideo 1.28', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Summary 1.10', 'H5P.Text 1.1', 'H5P.Blanks 1.14', 'H5P.DragText 1.10'],
+  'interactive-video': ['H5P.InteractiveVideo 1.28', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Summary 1.10', 'H5P.Text 1.1', 'H5P.Blanks 1.14', 'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11', 'H5P.SingleChoiceSet 1.11'],
   'h5p-column': ['H5P.Column 1.16', 'H5P.AdvancedText 1.1', 'H5P.MultiChoice 1.16', 'H5P.TrueFalse 1.8', 'H5P.Blanks 1.14', 'H5P.Summary 1.10', 'H5P.SingleChoiceSet 1.11',
-    'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11', 'H5P.Essay 1.5', 'H5P.Dialogcards 1.9', 'H5P.GuessTheAnswer 1.5', 'H5P.Accordion 1.0'],
+    'H5P.DragText 1.10', 'H5P.MarkTheWords 1.11', 'H5P.Essay 1.5', 'H5P.Dialogcards 1.9', 'H5P.GuessTheAnswer 1.5', 'H5P.Accordion 1.0', 'H5P.Table 1.2', 'H5P.Timeline 1.1'],
   'accordion': ['H5P.Accordion 1.0', 'H5P.AdvancedText 1.1'],
   'crossword': ['H5P.Crossword 0.4'],
   'timeline': ['H5P.Timeline 1.1'],
@@ -329,6 +329,33 @@ const CASES = [
   ['speak-sprache-nach-fach', 't-speak', { questions: [{ question: 'Say it', acceptedAnswers: ['hello'] }] },
     r => r.content?.questions?.[0]?.params?.inputLanguage === 'fr-FR' ? null : 'inputLanguage: ' + r.content?.questions?.[0]?.params?.inputLanguage, false,
     () => { const f = document.getElementById('fach'); f.value = 'Französisch'; f.dispatchEvent(new Event('change')); }],
+  // ----- Container: Tabelle, Zeitstrahl, weitere Video-Interaktionen -----
+  ['eingebaut-page-tabelle-zeitstrahl', 't-page', { blocks: [{ type: 'text', text: 'Einstieg' },
+      { type: 'table', header: ['Stoff', 'Rolle'], rows: [['Wasser', 'Ausgangsstoff'], ['CO2 < O2?', '*Produkt*']] },
+      { type: 'timeline', headline: 'Forschung', events: [{ startDate: '1771', endDate: '1771', headline: 'Priestley', text: 'Versuch' }, { startDate: 1779, headline: 'Ingenhousz', text: 'Licht' }] }] },
+    r => { const c = r.content?.content || [], d = r.h5p?.preloadedDependencies || []; const t = c[1]?.content, tl = c[2]?.content;
+      const ok = c.length === 3 && /^H5P\.Table 1\.2$/.test(t?.library) && t.params.text === '<table class="h5p-table"><thead><tr><th>Stoff</th><th>Rolle</th></tr></thead><tbody><tr><td>Wasser</td><td>Ausgangsstoff</td></tr><tr><td>CO2 &lt; O2?</td><td>Produkt</td></tr></tbody></table>'
+        && /^H5P\.Timeline /.test(tl?.library) && tl.params.timeline?.date?.length === 2 && tl.params.timeline.date[1].startDate === '1779' && tl.metadata?.title === 'Forschung'
+        && d.some(x => x.machineName === 'H5P.Table') && d.some(x => x.machineName === 'H5P.Timeline') && r.files?.length === 2;
+      return ok ? null : 'Tabelle/Zeitstrahl: ' + JSON.stringify({ deps: d.map(x => x.machineName), c }).slice(0, 500); }, false, USE_BUILTIN],
+  ['page-tabelle-ohne-zeilen-gesperrt', 't-page', { blocks: [{ type: 'table', header: ['A', 'B'], rows: [] }] },
+    r => (r.packBtnDisabled && /"rows" fehlt/.test(r.validation || '')) ? null : 'leere Tabelle nicht gesperrt: ' + r.validation],
+  ['eingebaut-praesentation-tabelle', 't-cp', { title: 'T', slides: [{ title: 'Start', text: 'Los' },
+      { title: 'Vergleich', table: { header: ['A', 'B'], rows: [['1', '2'], ['3', '4']] } },
+      { title: 'Mit Text', text: 'Kurz erklärt', table: [['Kopf 1', 'Kopf 2'], ['x', 'y']] }] },
+    r => { const sl = r.content?.presentation?.slides || []; const lib = e => e.action.library.split(' ')[0];
+      const ok = sl.length === 3 && sl[1].elements.length === 2 && lib(sl[1].elements[1]) === 'H5P.Table' && sl[1].elements[1].width === 94
+        && sl[2].elements.length === 3 && lib(sl[2].elements[2]) === 'H5P.Table' && /<th>Kopf 1<\/th>/.test(sl[2].elements[2].action.params.text)
+        && (r.h5p?.preloadedDependencies || []).some(x => x.machineName === 'H5P.Table');
+      return ok ? null : 'Folien mit Tabelle: ' + JSON.stringify(sl).slice(0, 500); }, false, USE_BUILTIN],
+  ['eingebaut-video-mark-scs', 't-video', { videoId: 'dQw4w9WgXcQ', interactions: [
+      { time: 30, type: 'mark', taskDescription: 'Markiere die Planeten.', textField: '*Merkur* und der Mond.' },
+      { time: 90, type: 'scs', questions: [{ question: 'Größter Planet?', answers: ['Jupiter', 'Mars'] }] }] },
+    r => { const it = r.content?.interactiveVideo?.assets?.interactions || [], d = r.h5p?.preloadedDependencies || [];
+      const ok = it.length === 2 && /^H5P\.MarkTheWords /.test(it[0].action.library) && /\*Merkur\*/.test(it[0].action.params.textField) && it[0].duration?.from === 30
+        && /^H5P\.SingleChoiceSet /.test(it[1].action.library) && it[1].action.params.choices?.[0]?.answers?.[0] === 'Jupiter'
+        && d.some(x => x.machineName === 'H5P.MarkTheWords') && d.some(x => x.machineName === 'H5P.SingleChoiceSet');
+      return ok ? null : 'Video mark/scs: ' + JSON.stringify({ deps: d.map(x => x.machineName), it }).slice(0, 500); }, false, USE_BUILTIN],
   ['speak-ohne-antworten-gesperrt', 't-speak', { questions: [{ question: 'Q', acceptedAnswers: [] }] },
     r => (r.packBtnDisabled && /keine "acceptedAnswers"/.test(r.validation || '')) ? null : 'nicht gesperrt: ' + r.validation, false,
     () => { const f = document.getElementById('fach'); f.value = 'Biologie'; f.dispatchEvent(new Event('change')); }],
@@ -361,14 +388,14 @@ if (await page.$('#t-bingo')) {
 
 // ---------- 2a) Vertragstest mit zusätzlichen Optionen (Video, Quiz, Page) ----------
 for (const [name, typeId, setup, check] of [
-  ['Video mit allen Interaktionen', 't-video', () => ['blanks', 'drag', 'text'].forEach(t => { const c = document.getElementById('iv-allow-' + t); if (c) c.checked = true; }),
-    r => (r.content?.interactiveVideo?.assets?.interactions || []).length === 5],
+  ['Video mit allen Interaktionen', 't-video', () => ['blanks', 'drag', 'mark', 'scs', 'text'].forEach(t => { const c = document.getElementById('iv-allow-' + t); if (c) c.checked = true; }),
+    r => (r.content?.interactiveVideo?.assets?.interactions || []).length === 7],
   ['Quiz mit Essay', 't-qs', () => { const c = document.getElementById('qs-allow-essay'); if (c) c.checked = true; },
     r => (r.content?.questions || []).some(q => q.library.startsWith('H5P.Essay'))],
-  ['Präsentation mit allen Aufgabentypen', 't-cp', () => document.querySelectorAll('#opts-cp input[id^=cp-allow-]').forEach(c => { c.checked = true; }),
-    r => (r.content?.presentation?.slides || []).length === 3],
+  ['Präsentation mit allen Aufgabentypen und Tabellen', 't-cp', () => document.querySelectorAll('#opts-cp input[id^=cp-allow-], #cp-tables').forEach(c => { c.checked = true; }),
+    r => { const sl = r.content?.presentation?.slides || []; return sl.length === 4 && sl[2].elements.some(e => /^H5P\.Table /.test(e.action.library)); }],
   ['Page mit allen Bausteinen', 't-page', () => document.querySelectorAll('#page-block-list input[type=checkbox]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); }),
-    r => (r.content?.content || []).length === 13],
+    r => (r.content?.content || []).length === 15],
 ]) {
   try {
     await selectType(typeId);

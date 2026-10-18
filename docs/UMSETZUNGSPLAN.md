@@ -215,7 +215,25 @@ Anlass: Prüfung, welche weiteren Inhaltstypen sich sinnvoll integrieren lassen 
 
 **Testergebnis V.1.4:** E2E 181/181 (neu: Prompt-Vertragstests der drei Typen, Bingo mit Joker/Feldgröße/HTML-Escaping, Bingo als reine Wortliste, Sperre bei zu wenigen Begriffen, Download und Inhalt der Vorleseliste, Structure Strip mit Hinweislisten/Gewichten/Länge/Rückmeldemodus, Speak the Words Set mit Satzzeichen-Bereinigung, Sprache nach Fach und Sperre ohne Antworten); 71 Testpakete ohne Validator-Fehler.
 
+### Nachtrag V.1.4: Container-Typen vervollständigt
+
+Geprüft wurde, welche Teilinhalte Page (H5P.Column 1.22), Interactive Book (Kapitel = Column), Course Presentation 1.27, Interactive Video 1.28 und Question Set laut semantics.json erlauben. Ergänzt wurden alle, die sich sinnvoll aus Text erzeugen lassen:
+
+| Container | Neu | Umsetzung |
+|---|---|---|
+| **Page / Interactive Book** | Tabelle (H5P.Table 1.2), Zeitstrahl (H5P.Timeline 1.1) | Neue Bausteine mit Einstellungen (Zeilen/Spalten bzw. Anzahl Ereignisse). KI-Format `{"type":"table","header":[…],"rows":[[…]]}` und `{"type":"timeline","headline":…,"events":[…]}`; der Zeitstrahl nutzt das Mapping des Typs „Timeline“. Ohne `header` gilt die erste Zeile als Kopfzeile. Tabelle ohne Zeilen sperrt den Export. |
+| **Course Presentation** | Tabellen auf Inhaltsfolien | Option „Tabellen auf Inhaltsfolien“: 1–2 Folien dürfen statt Stichpunkten eine Tabelle haben (`"table"` an der Folie). Mit zusätzlichem Text steht der Text oben, die Tabelle darunter. |
+| **Interactive Video** | Mark the Words, Single Choice Set | Weitere Interaktionen, gleiche Umsetzung wie die Page-Bausteine. |
+| Question Set | – | Deckt alle textbasierten Fragetypen ab; es fehlen nur Drag and Drop und Multimedia Choice (brauchen Bilder). |
+
+Bewusst nicht ergänzt: Teilinhalte, die Bilder, Audio oder Video brauchen (Image, Video, Audio, Collage, Image Hotspots, Drag and Drop, Memory, Agamotto, Image Slider, Multimedia Choice); Link (KI erfindet leicht URLs); Chart (KI würde Zahlen erfinden); Questionnaire/Free Text Question (keine Bewertung, Antworten nur über xAPI sichtbar); Question Set als Page-Baustein (Column 1.22 verlangt Question Set 1.21, der Wizard nutzt 1.20 – und MC/TF gibt es schon als einzelne Bausteine). Typen wie Flashcards, Sort the Paragraphs, Crossword, Complex Fill in the Blanks lässt Column nicht als Teilinhalt zu.
+
+Eingebaute Vorlagen: 30 Bibliotheken (H5P.Table ergänzt, deutsche Vorgabe aus der offiziellen Sprachdatei).
+
+**Testergebnis:** E2E 185/185 (neu: Page mit Tabelle und Zeitstrahl inkl. HTML-Escaping, Sperre bei leerer Tabelle, Folien mit Tabelle mit/ohne Text, Video mit Mark the Words und Single Choice Set; Vertragstests mit allen Bausteinen/Interaktionen); 74 Testpakete ohne Validator-Fehler.
+
 **Offen:**
+- [ ] In Moodle prüfen, ob **H5P.Table 1.2** installiert ist (kommt normalerweise mit Column bzw. Course Presentation vom Hub mit).
 - [ ] In Moodle prüfen, ob **H5P.Bingo 0.3** und **H5P.StructureStrip** installiert sind (Website-Administration → H5P → H5P-Inhaltstypen verwalten). Bingo hat auf GitHub keinen Release-Zweig (Version 0.x) – ob es über den H5P-Hub angeboten wird, konnte aus der Testumgebung nicht geprüft werden (h5p.org nicht erreichbar). Fehlt es, muss die Administration die Bibliothek einmalig hochladen. Structure Strip: Standard ist 1.0 (GitHub-Release); ist in Moodle 1.1 installiert, die Version über „Versionen aus H5P-Datei übernehmen“ oder von Hand anpassen.
 - [ ] Upload-Test in Moodle (Lehrkraft-Rolle): Bingo 4 × 4 mit 20 Begriffen (Darstellung langer Begriffe auf dem Tablet), Structure Strip mit 4 Abschnitten, Speak the Words Set in Chrome, Edge und Safari/iPad (Mikrofonfreigabe im Moodle-iframe, Erkennungsqualität).
 - [ ] Datenschutz Speak the Words: Einsatz mit der/dem Datenschutzbeauftragten der Schule klären (Sprachaufnahmen gehen an Google/Microsoft/Apple).

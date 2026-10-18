@@ -252,9 +252,9 @@ Bewertet nach: Kann eine KI den Inhalt rein textbasiert erzeugen? Unterrichtsnut
 | **Essay** (Freitext mit Schlüsselwörtern, Musterlösung) | H5P.Essay 1.5/1.6 | ★★★ | ★★★ | gering – Kachel existiert bereits (per CSS versteckt), Mapping + Template fehlen | **sofort** |
 | **Find the Words** (Suchsel) | H5P.FindTheWords 1.4 | ★★★ | ★★ | sehr gering (nur Wortliste) | **sofort** |
 | **Interactive Book** (Kapitel aus Page-Bausteinen) | H5P.InteractiveBook 1.15 | ★★★ | ★★★ | mittel – Page-Mapping wiederverwendbar | **hoch** |
-| **Page erweitern** um Drag/Mark the Words, Dialog Cards, Accordion, Guess the Answer, Table, Essay | Column 1.22 erlaubt all diese | ★★★ | ★★★ | gering je Baustein | **hoch** |
+| ~~**Page erweitern**~~ um Drag/Mark the Words, Dialog Cards, Accordion, Guess the Answer, Table, Essay, Timeline | Column 1.22 erlaubt all diese | ★★★ | ★★★ | gering je Baustein | ✅ umgesetzt (Table und Timeline in V.1.4) |
 | **Question Set erweitern** um Essay | QuestionSet erlaubt H5P.Essay | ★★★ | ★★ | gering | hoch |
-| **Interactive Video erweitern** (Blanks, Drag Text, SCS, Summary, Text-Einblendungen, Lesezeichen, Abschluss-Summary) | IV 1.28 | ★★★ | ★★★ | mittel | hoch |
+| **Interactive Video erweitern** (Blanks, Drag Text, SCS, Summary, Text-Einblendungen, Lesezeichen, Abschluss-Summary) | IV 1.28 | ★★★ | ★★★ | mittel | teilweise umgesetzt (Blanks, Drag Text, Mark the Words, SCS, Text, Abschluss-Summary); offen: Lesezeichen |
 | **Branching Scenario** (Fallbeispiele, Dilemmata – Ethik, Gemeinschaftskunde, Berufliche Schule) | H5P.BranchingScenario 1.11 | ★★☆ | ★★★ | hoch (Graph-Struktur) | mittel |
 | ~~**Structure Strip**~~ (Schreibgerüst: Einleitung/Hauptteil/Schluss mit Hinweisen) | H5P.StructureStrip 1.0/1.1 | ★★★ | ★★ (Deutsch, Fremdsprachen) | gering | ✅ umgesetzt in V.1.4 |
 | ~~**Bingo**~~ (Begriffe-Bingo: Lehrkraft liest Hinweise vor, Lernende markieren; Vorleseliste als Begleitdatei) | H5P.Bingo 0.3 (otacke, kein Release-Zweig – Verfügbarkeit in Moodle prüfen) | ★★★ | ★★ (Einstieg, Wiederholung, Vokabeln, Kopfrechnen) | gering | ✅ umgesetzt in V.1.4 |
